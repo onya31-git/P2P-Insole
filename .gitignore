@@ -81,6 +81,7 @@ build/
 *.h5
 *.npy
 *.pkl
+*.html
 
 # 大容量ファイル
 *.zip

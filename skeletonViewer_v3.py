@@ -3,9 +3,9 @@ import plotly.graph_objects as go
 import numpy as np
 
 # ファイルパスの設定
-file_path = "./data/20241115test3/Opti-track/Take 2024-11-15 03.32.00 PM.csv"  # パスを適切に設定
+# file_path = "./data/20241115test3/Opti-track/Take 2024-11-15 03.32.00 PM.csv"  # パスを適切に設定
 
-# file_path = "./output/predicted_skeleton.csv"
+file_path = "./output/BERT_predicted_skeleton.csv"
 
 # ボーンの接続関係を定義
 bones = [
