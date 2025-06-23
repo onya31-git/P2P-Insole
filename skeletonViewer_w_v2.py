@@ -3,12 +3,13 @@ import plotly.graph_objects as go
 import numpy as np
 import os
 
-# ファイルパスの定義
-file_path1 = "./data/20241115test3/Opti-track/Take 2024-11-15 03.32.00 PM.csv"
-file_path2 = "./output/skeleton11_test4_yoko.csv"
+# # ファイルパスの定義
+# file_path1 = "./data/20241115test3/Opti-track/Take 2024-11-15 03.32.00 PM.csv"
+# file_path2 = "./output/skeleton11_test4_yoko.csv"
 
-# file_path1 = './data/20241115test3/Opti-track/Take 2024-11-15 03.38.00 PM.csv'
-# file_path2 = "./output/predicted_skeleton.csv"
+## file_path1 = './data/20250518test3/Opti-track/3_final/Take 2024-11-15 03.49.59 PM.csv'
+file_path1 = './data/20250517old_data/20241115test3/Opti-track/Take 2024-11-15 03.50.00 PM.csv'
+file_path2 = "./output/predicted_skeleton.csv"
 
 # ファイルの存在確認
 for path in [file_path1, file_path2]:
@@ -72,9 +73,9 @@ def process_predicted_data(file_path):
             z_positions = []
             
             for i in range(num_joints):
-                x = row[f'joint_{i}_x']
-                y = row[f'joint_{i}_y']
-                z = row[f'joint_{i}_z']
+                x = row[f'X.{i}']
+                y = row[f'Y.{i}']
+                z = row[f'Z.{i}']
                 
                 if pd.notna(x) and pd.notna(y) and pd.notna(z):
                     x_positions.append(float(x))

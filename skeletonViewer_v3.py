@@ -3,9 +3,9 @@ import plotly.graph_objects as go
 import numpy as np
 
 # ファイルパスの設定
-# file_path = "./data/20241115test3/Opti-track/Take 2024-11-15 03.32.00 PM.csv"  # パスを適切に設定
+file_path = "./data/20250529test5/Opti-track/2_data_clean2/Take 2025-05-29 01.35.10 PM.csv"  # パスを適切に設定
 
-file_path = "./output/BERT_predicted_skeleton.csv"
+# file_path = "./output/predicted_skeleton.csv"
 
 # ボーンの接続関係を定義
 bones = [
@@ -19,17 +19,18 @@ def process_skeleton_data(df):
     frames_data = []
     
     # 3つずつの列をグループ化してx, y, z座標として処理
-    num_joints = len(df.columns) // 3
+    num_joints = 21
     
     for index, row in df.iterrows():
+
         x_positions = []
         y_positions = []
         z_positions = []
         
         for i in range(num_joints):
-            x = row[f'joint_{i}_x']
-            y = row[f'joint_{i}_y']
-            z = row[f'joint_{i}_z']
+            x = row[f'X.{i*2+1}']
+            y = row[f'Y.{i*2+1}']
+            z = row[f'Z.{i*2+1}']
             
             if pd.notna(x) and pd.notna(y) and pd.notna(z):
                 x_positions.append(float(x))
@@ -60,7 +61,7 @@ try:
     # 表示するフレームの範囲を設定
     start_frame = 0
     end_frame = len(frames_data)
-    step = 5  # フレームの間隔
+    step = 100  # フレームの間隔
     frames_data = frames_data[start_frame:end_frame:step]
     
     fig = go.Figure()

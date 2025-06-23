@@ -212,7 +212,7 @@ def main():
     d_model = 512
     nhead = 8
     num_encoder_layers = 8
-    num_joints = skeleton_data.shape[1] // 3  # 3D座標なので3で割る
+    num_joints = 21 # skeleton_data.shape[1] // 3  # 3D座標なので3で割る
     dropout = 0.2
     batch_size = 32
 
