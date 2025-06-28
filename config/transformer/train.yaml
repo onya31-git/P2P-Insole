@@ -1,0 +1,26 @@
+# 学習時のパラメータをyamlで指定する
+#
+#
+#
+#
+
+# <仮>------------------------------------------------------------------
+mode: train  # または "predict", "visualize"
+
+common:
+  data_path: "./data/dataset.csv"
+
+train:
+  model: "resnet"
+  epochs: 20
+  batch_size: 64
+  lr: 0.001
+  save_model: true
+
+predict:
+  model_path: "./models/resnet_latest.pth"
+  input_data: "./data/test.csv"
+
+visualize:
+  results_path: "./results/predictions.csv"
+# <仮>------------------------------------------------------------------
