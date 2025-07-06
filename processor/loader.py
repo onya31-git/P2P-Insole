@@ -1,0 +1,167 @@
+# Yamlファイルをロードする
+#
+#
+#
+#
+import pandas as pd
+import os
+import glob
+from collections import defaultdict
+import yaml
+from torch.utils.data import Dataset
+
+
+def get_datapath_pairs(skeleton_dir, insole_dir):
+    """指定されたディレクトリから、共通タグを持つskeletonとinsoleのファイルパスをペアリングする。
+    Args:
+        skeleton_dir (str): スケルトンデータ（*_skeleton.csv）が格納されているディレクトリのパス。
+        insole_dir (str): インソールデータ（*_Insole_*.csv）が格納されているディレクトリのパス。
+    Returns:
+        defaultdict: タグをキーとした辞書。
+            値は `{tag:{'skeleton': str, 'insole': list[str]}}` の形式。
+    """
+    # データパスの表示
+    print("---"*20)
+    print(f"<Dataset Infomation>")
+    print(f"skeleton data path : {skeleton_dir}")
+    print(f"Inosole data path : {insole_dir}")
+
+    # フォルダ内のcsvファイルを全て所得する
+    skeleton_files = glob.glob(os.path.join(skeleton_dir, "*_skeleton.csv"))
+    insole_files = glob.glob(os.path.join(insole_dir, "*_Insole_*.csv"))
+
+    # skeletonとInsoleのデータペアを格納する辞書を作成する
+    data_pairs = defaultdict(lambda: {'skeleton': None, 'insole': []})
+
+    # skeletonファイルからタグを抽出して辞書に格納する
+    for file_path in skeleton_files:
+        filename = os.path.basename(file_path)
+        tag = filename.replace('_skeleton.csv', '')
+        data_pairs[tag]['skeleton'] = file_path
+    
+    # insoleファイルからタグを抽出して辞書に格納する
+    for file_path in insole_files:
+        filename = os.path.basename(file_path)
+        tag = filename.split('_Insole_')[0]
+
+        # 辞書を参照して対応するskeletonファイルが存在する場合のみ追加する
+        if tag in data_pairs:
+            data_pairs[tag]['insole'].append(file_path)
+
+    # 抽出結果を表示
+    data_i=0
+    for tag, paths in data_pairs.items():
+        data_i+=1
+        print(f"")
+        print(f"Data_{data_i}_{tag}")
+        print(f"skeleton: {paths['skeleton']}")
+        print(*[f"insole: {f}" for f in sorted(paths['insole'])], sep='\n')
+    print("---"*20)
+
+    return data_pairs
+
+
+def load_and_combine_data(data_pairs):
+    """ファイルパスの辞書からデータを読み込み、カテゴリ別に結合したDataFrameを返す。
+    Args:
+        data_pairs (dict): タグをキーとし、ファイルパスの辞書を値に持つオブジェクト。
+            値の形式は `{'skeleton': str, 'insole': list[str]}` である必要がある。
+            insoleリストは少なくとも2つの要素（左足、右足のパス）を持つことが前提。
+
+    Returns:
+        tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]: 
+            以下の3つのDataFrameが格納されたタプル
+            1. 全てのスケルトンデータを結合したDataFrame
+            2. 全ての左足インソールデータを結合したDataFrame
+            3. 全ての右足インソールデータを結合したDataFrame
+
+    """
+    # 各データを格納する配列を作成
+    all_skeleton_df     = []
+    all_insole_left_df  = []
+    all_insole_right_df = []
+    
+    # 各データをdfに変換してall_kindに格納する
+    for tag, paths in data_pairs.items():
+        skeleton_df     = pd.read_csv(paths['skeleton'])
+        insole_left_df  = pd.read_csv(paths['insole'][0])
+        insole_right_df = pd.read_csv(paths['insole'][1])
+
+        all_skeleton_df.append(skeleton_df)
+        all_insole_left_df.append(insole_left_df)
+        all_insole_right_df.append(insole_right_df)
+
+    return (pd.concat(all_skeleton_df, ignore_index=True),
+            pd.concat(all_insole_left_df, ignore_index=True),
+            pd.concat(all_insole_right_df, ignore_index=True))
+
+
+def process_insole_data(insole_left_df, insole_right_df):
+    """
+    Args:
+
+    Returns:
+    
+    """
+    # 左足データから各種センサー値を抽出
+    pressure_left_df = insole_left_df.drop(["Gyro_x","Gyro_y","Gyro_z","Acc_x","Acc_y","Acc_z"],axis=1)
+    IMU_left_df      = insole_left_df[["Gyro_x","Gyro_y","Gyro_z","Acc_x","Acc_y","Acc_z"]]
+
+    # 右足データから各種センサー値を抽出
+    pressure_right_df = insole_right_df.drop(["Gyro_x","Gyro_y","Gyro_z","Acc_x","Acc_y","Acc_z"],axis=1)
+    IMU_right_df      = insole_right_df[["Gyro_x","Gyro_y","Gyro_z","Acc_x","Acc_y","Acc_z"]]
+
+    # 左右データの結合
+    pressure_lr = pd.concat([pressure_left_df, pressure_right_df], axis=1)
+    IMU_lr      = pd.concat([IMU_left_df, IMU_right_df], axis=1)
+
+    # # 1次微分と2次微分の計算(使用する場合)
+    # pressure_grad1 = np.gradient(pressure_processed, axis=0)
+    # pressure_grad2 = np.gradient(pressure_grad1, axis=0)
+    # IMU_grad1 = np.gradient(IMU_lr, axis=0)
+    # IMU_grad2 = np.gradient(IMU_grad1, axis=0)
+    # pressure_features = np.concatenate([
+    #     pressure_lr,
+    #     pressure_grad1,
+    #     pressure_grad2,
+    # ], axis=1)
+    # IMU_features = np.concatenate([
+    #     IMU_lr,
+    #     IMU_grad1,
+    #     IMU_grad2,
+    # ], axis=1)
+
+    return pressure_lr, IMU_lr
+
+
+def load_config(path):
+    """指定されたパスからYAMLファイルを読み込み、Pythonオブジェクトとして返す。
+    Args:
+        path (str): 読み込む設定ファイル（.yaml）のファイルパス。
+    Returns:
+        dict: YAMLファイルの内容から変換された辞書オブジェクト
+
+    """
+    with open(path, 'r', encoding='utf-8') as f:
+        return yaml.safe_load(f)
+    
+
+class PressureSkeletonDataset(Dataset):
+    """圧力データと骨格データを扱うためのPyTorchカスタムデータセット。
+    Args:
+        pressure_data (np): 圧力データのシーケンス。
+        skeleton_data (np): 骨格データのシーケンス。
+
+    Returns:
+        pressure_data (torch.Tensor): Tensorに変換された圧力データ。
+        skeleton_data (torch.Tensor): Tensorに変換された骨格データ。
+    """
+    def __init__(self, pressure_data, skeleton_data):
+        self.pressure_data = torch.FloatTensor(pressure_data)
+        self.skeleton_data = torch.FloatTensor(skeleton_data)
+        
+    def __len__(self):
+        return len(self.pressure_data)
+    
+    def __getitem__(self, idx):
+        return self.pressure_data[idx], self.skeleton_data[idx]

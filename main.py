@@ -1,7 +1,7 @@
 #モデルのコントローラ
 #
 # # modeごとに動的にコンフィグファイルを指定したい。
-#
+# # パラメータをコマンドライン引数から設定できるように変更する
 #
 import argparse
 import importlib as iml
@@ -13,7 +13,8 @@ def main():
         'train': iml.import_module('processor.train'),
         'predict': iml.import_module('processor.predict'),
         'visual': iml.import_module('processor.visualization'),
-        # 'module': iml.import_module('processor.module')
+        # 'evaluation': iml.import_module('processor.evaluation'),
+        # 'module': iml.import_module('processor.module'),
     }
 
     # read main-parser

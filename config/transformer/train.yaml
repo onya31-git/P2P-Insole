@@ -8,10 +8,9 @@
 mode: train  # または "predict", "visualize"
 
 common:
-  data_path: "./data/dataset.csv"
+  data_path: "data/training_data"
 
 train:
-  model: "resnet"
   epochs: 20
   batch_size: 64
   lr: 0.001
