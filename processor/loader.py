@@ -4,6 +4,7 @@
 #
 #
 import pandas as pd
+import numpy as np
 import os
 import glob
 from collections import defaultdict
@@ -96,7 +97,7 @@ def load_and_combine_data(data_pairs):
             pd.concat(all_insole_right_df, ignore_index=True))
 
 
-def process_insole_data(insole_left_df, insole_right_df):
+def restructure_insole_data(insole_left_df, insole_right_df):
     """
     Args:
 
@@ -115,21 +116,30 @@ def process_insole_data(insole_left_df, insole_right_df):
     pressure_lr = pd.concat([pressure_left_df, pressure_right_df], axis=1)
     IMU_lr      = pd.concat([IMU_left_df, IMU_right_df], axis=1)
 
-    # # 1次微分と2次微分の計算(使用する場合)
-    # pressure_grad1 = np.gradient(pressure_processed, axis=0)
-    # pressure_grad2 = np.gradient(pressure_grad1, axis=0)
-    # IMU_grad1 = np.gradient(IMU_lr, axis=0)
-    # IMU_grad2 = np.gradient(IMU_grad1, axis=0)
-    # pressure_features = np.concatenate([
-    #     pressure_lr,
-    #     pressure_grad1,
-    #     pressure_grad2,
-    # ], axis=1)
-    # IMU_features = np.concatenate([
-    #     IMU_lr,
-    #     IMU_grad1,
-    #     IMU_grad2,
-    # ], axis=1)
+    return pressure_lr, IMU_lr
+
+def restructure_insole_data(pressure_lr, IMU_lr):
+    """
+    Args:
+
+    Returns:
+    
+    """
+    # 1次微分と2次微分の計算(使用する場合)
+    pressure_grad1 = np.gradient(pressure_lr, axis=0)
+    pressure_grad2 = np.gradient(pressure_grad1, axis=0)
+    IMU_grad1 = np.gradient(IMU_lr, axis=0)
+    IMU_grad2 = np.gradient(IMU_grad1, axis=0)
+    pressure_features = np.concatenate([
+        pressure_lr,
+        pressure_grad1,
+        pressure_grad2,
+    ], axis=1)
+    IMU_features = np.concatenate([
+        IMU_lr,
+        IMU_grad1,
+        IMU_grad2,
+    ], axis=1)
 
     return pressure_lr, IMU_lr
 
@@ -149,19 +159,20 @@ def load_config(path):
 class PressureSkeletonDataset(Dataset):
     """圧力データと骨格データを扱うためのPyTorchカスタムデータセット。
     Args:
-        pressure_data (np): 圧力データのシーケンス。
-        skeleton_data (np): 骨格データのシーケンス。
+        pressure_data (pd): 圧力データのシーケンス。
+        skeleton_data (pd): 骨格データのシーケンス。
 
     Returns:
         pressure_data (torch.Tensor): Tensorに変換された圧力データ。
         skeleton_data (torch.Tensor): Tensorに変換された骨格データ。
     """
-    def __init__(self, pressure_data, skeleton_data):
+    def __init__(self, pressure_data, IMU_data, skeleton_data):
         self.pressure_data = torch.FloatTensor(pressure_data)
+        self.IMU_data      = torch.FloatTensor(IMU_data)
         self.skeleton_data = torch.FloatTensor(skeleton_data)
         
     def __len__(self):
         return len(self.pressure_data)
     
     def __getitem__(self, idx):
-        return self.pressure_data[idx], self.skeleton_data[idx]
+        return self.pressure_data[idx], self.IMU_data[idx], self.skeleton_data[idx]
