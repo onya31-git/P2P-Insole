@@ -7,8 +7,10 @@ import pandas as pd
 import numpy as np
 import os
 import glob
-from collections import defaultdict
 import yaml
+import time
+import torch
+from collections import defaultdict
 from torch.utils.data import Dataset
 
 
@@ -26,6 +28,7 @@ def get_datapath_pairs(skeleton_dir, insole_dir):
     print(f"<Dataset Infomation>")
     print(f"skeleton data path : {skeleton_dir}")
     print(f"Inosole data path : {insole_dir}")
+    time.sleep(0.5)
 
     # フォルダ内のcsvファイルを全て所得する
     skeleton_files = glob.glob(os.path.join(skeleton_dir, "*_skeleton.csv"))
@@ -57,6 +60,7 @@ def get_datapath_pairs(skeleton_dir, insole_dir):
         print(f"Data_{data_i}_{tag}")
         print(f"skeleton: {paths['skeleton']}")
         print(*[f"insole: {f}" for f in sorted(paths['insole'])], sep='\n')
+        time.sleep(0.5)
     print("---"*20)
 
     return data_pairs
@@ -118,7 +122,7 @@ def restructure_insole_data(insole_left_df, insole_right_df):
 
     return pressure_lr, IMU_lr
 
-def restructure_insole_data(pressure_lr, IMU_lr):
+def calculate_grad(pressure_lr, IMU_lr):
     """
     Args:
 
@@ -141,10 +145,10 @@ def restructure_insole_data(pressure_lr, IMU_lr):
         IMU_grad2,
     ], axis=1)
 
-    return pressure_lr, IMU_lr
+    return pressure_features, IMU_features
 
 
-def load_config(path):
+def load_config(args,config_path, model):
     """指定されたパスからYAMLファイルを読み込み、Pythonオブジェクトとして返す。
     Args:
         path (str): 読み込む設定ファイル（.yaml）のファイルパス。
@@ -152,8 +156,26 @@ def load_config(path):
         dict: YAMLファイルの内容から変換された辞書オブジェクト
 
     """
-    with open(path, 'r', encoding='utf-8') as f:
-        return yaml.safe_load(f)
+    # configファイル名が指定されている場合は指定されたパスを、そうでなければモデル名から推測
+    if config_path is None:
+        config_path = f'config/{model}/train.yaml'
+    
+    # 使用したconfigファイルをプロンプトに表示 
+    print(f"<load config>")
+    print(f"Loading configuration from: {config_path}")
+    time.sleep(1)
+
+    # configファイルをロード
+    with open(config_path, 'r', encoding='utf-8') as f:
+        config = yaml.safe_load(f)
+    
+    # コマンドライン引数で設定を上書き
+    cli_args = vars(args)   # vars()でargsを辞書に変換
+    for key, value in cli_args.items():  # 値がNoneでない引数はconfigで上書きする
+        if value is not None:           #
+            config[key] = value         #
+
+    return config
     
 
 class PressureSkeletonDataset(Dataset):
@@ -166,13 +188,12 @@ class PressureSkeletonDataset(Dataset):
         pressure_data (torch.Tensor): Tensorに変換された圧力データ。
         skeleton_data (torch.Tensor): Tensorに変換された骨格データ。
     """
-    def __init__(self, pressure_data, IMU_data, skeleton_data):
-        self.pressure_data = torch.FloatTensor(pressure_data)
-        self.IMU_data      = torch.FloatTensor(IMU_data)
-        self.skeleton_data = torch.FloatTensor(skeleton_data)
+    def __init__(self, input_feature, skeleton_data):
+        self.input_data = torch.FloatTensor(input_feature)
+        self.skeleton_data = torch.FloatTensor(skeleton_data.to_numpy())
         
     def __len__(self):
-        return len(self.pressure_data)
+        return len(self.input_data)
     
     def __getitem__(self, idx):
-        return self.pressure_data[idx], self.IMU_data[idx], self.skeleton_data[idx]
+        return self.input_data[idx], self.skeleton_data[idx]

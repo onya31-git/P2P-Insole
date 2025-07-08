@@ -15,8 +15,8 @@ def start(args):
     config = load_config(args.config)
 
     # データパスの指定
-    skeleton_dir = config["common"]["data_path"] + "/skeleton/"
-    insole_dir   = config["common"]["data_path"] + "/Insole/"
+    skeleton_dir = config["location"]["data_path"] + "/skeleton/"
+    insole_dir   = config["location"]["data_path"] + "/Insole/"
     
     # 骨格データ、インソールデータのデータペアを所得
     skeleton_insole_datapath_pairs = get_datapath_pairs(skeleton_dir, insole_dir)

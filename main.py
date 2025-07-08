@@ -5,7 +5,6 @@
 #
 import argparse
 import importlib as iml
-
     
 def main():
     # processor辞書の作成
