@@ -60,7 +60,7 @@ def get_datapath_pairs(skeleton_dir, insole_dir):
         print(f"Data_{data_i}_{tag}")
         print(f"skeleton: {paths['skeleton']}")
         print(*[f"insole: {f}" for f in sorted(paths['insole'])], sep='\n')
-        time.sleep(0.5)
+        time.sleep(0.3)
     print("---"*20)
 
     return data_pairs
@@ -158,7 +158,7 @@ def load_config(args,config_path, model):
     """
     # configファイル名が指定されている場合は指定されたパスを、そうでなければモデル名から推測
     if config_path is None:
-        config_path = f'config/{model}/train.yaml'
+        config_path = f'config/{model}/{args.mode}.yaml'
     
     # 使用したconfigファイルをプロンプトに表示 
     print(f"<load config>")

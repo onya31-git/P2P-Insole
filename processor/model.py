@@ -16,6 +16,9 @@ class Transformer_Encoder(nn.Module):
         # クラス属性としてnum_jointsを保存
         self.num_joints = num_joints
         self.num_dims = num_dims
+
+        # ★★★ 82次元を512次元に変換する層を追加 ★★★
+        self.input_projection = nn.Linear(82, 512)
         
         # 入力の特徴抽出を強化
         self.feature_extractor = nn.Sequential(
@@ -59,7 +62,10 @@ class Transformer_Encoder(nn.Module):
 
         # 特徴抽出
         features = self.feature_extractor(x)
-        features = features.unsqueeze(1)
+        # features = features.unsqueeze(1)
+
+        # ★★★ Transformerに渡す前に次元を変換 ★★★
+        features = self.input_projection(x)
         
         # Transformer処理
         transformer_output = self.transformer_encoder(features)

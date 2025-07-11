@@ -29,15 +29,15 @@ def start(args):
     skeleton_df, insole_left_df, insole_right_df  = load_and_combine_data(skeleton_insole_datapath_pairs)   # 骨格データ、insole data右、insole data左をそれぞれまとめる
     pressure_lr_df, IMU_lr_df = restructure_insole_data(insole_left_df, insole_right_df)                    # insole dataを圧力データとIMUデータに分離、insole dataの左右を結合する
 
-    # <デバッグ用> 各DataFrameの形状を出力
+    # # <デバッグ用> 各DataFrameの形状を出力
     # print(f"Pressure data shape: {pressure_lr_df.shape}")
     # print(f"IMU data shape: {IMU_lr_df.shape}")
     # print(f"Skeleton data shape: {skeleton_df.shape}")
 
-    # 微分処理を行うならば
+    # # 微分処理を行うならば
     # calculate_grad()
 
-    # # 正規化と標準化のスケーラー初期化
+    # # 正規化と標準化のスケーラー初期化 → 前処理用のコード内に移動
     # pressure_normalizer = MinMaxScaler()
     # rotation_normalizer = MinMaxScaler()
 
@@ -47,6 +47,7 @@ def start(args):
     # # NaN値を補正
     # pressure_lr_df = pressure_lr_df.fillna(0.0)
     # IMU_lr_df = IMU_lr_df.fillna(0.0)
+    # skeleton_df = skeleton_df.fillna(0.0)
 
     # # データの正規化と標準化
     # pressure_lr_df = pressure_standardizer.fit_transform(
@@ -59,11 +60,22 @@ def start(args):
     # sigma=2
     # skeleton_df = skeleton_df.apply(lambda x: gaussian_filter1d(x, sigma=sigma))
 
-    input_feature_df  = np.concatenate([pressure_lr_df, IMU_lr_df], axis=1)
+    input_feature_np = np.concatenate([pressure_lr_df, IMU_lr_df], axis=1)
+
+    # # <デバッグ用>
+    # input_feature_df = pd.DataFrame(input_feature_np)
+    # print(input_feature_df.isnull().sum())
+    # print(input_feature_df.isin([np.inf, -np.inf]).sum())
+    # print(input_feature_df.info())
+    # print(input_feature_df.describe())
+    # print(skeleton_df.isnull().sum())
+    # print(skeleton_df.isin([np.inf, -np.inf]).sum())
+    # print(skeleton_df.info())
+    # print(skeleton_df.describe())
 
     # データの分割
     train_input_feature, val_input_feature, train_skeleton, val_skeleton = train_test_split(
-        input_feature_df, 
+        input_feature_np, 
         skeleton_df,
         test_size=0.2, 
         random_state=42
@@ -75,6 +87,7 @@ def start(args):
     n_head = config["train"]["n_head"]
     num_encoder_layer = config["train"]["num_encoder_layer"]
     dropout = config["train"]["dropout"]
+    sequence_len = 10           # 後からConfigとsub Parserに追加する
 
     # 学習パラメータ
     num_epoch = config["train"]["epoch"]
@@ -120,7 +133,7 @@ def start(args):
     print(f"Using device: {device}")
 
     # データローダーの設定
-    train_dataset = PressureSkeletonDataset(train_input_feature, train_skeleton)
+    train_dataset = PressureSkeletonDataset(train_input_feature, train_skeleton, sequence_len=sequence_len)
     val_dataset = PressureSkeletonDataset(val_input_feature, val_skeleton)
     
     train_loader = DataLoader(
