@@ -1,4 +1,4 @@
-# Yamlファイルをロードする
+# load関係の関数
 #
 #
 #
@@ -17,11 +17,11 @@ from torch.utils.data import Dataset
 def get_datapath_pairs(skeleton_dir, insole_dir):
     """指定されたディレクトリから、共通タグを持つskeletonとinsoleのファイルパスをペアリングする。
     Args:
-        skeleton_dir (str): スケルトンデータ（*_skeleton.csv）が格納されているディレクトリのパス。
-        insole_dir (str): インソールデータ（*_Insole_*.csv）が格納されているディレクトリのパス。
+        skeleton_dir (str): スケルトンデータ（*_skeleton.csv）が格納されているディレクトリのパス
+        insole_dir (str): インソールデータ（*_Insole_*.csv）が格納されているディレクトリのパス
     Returns:
         defaultdict: タグをキーとした辞書。
-            値は `{tag:{'skeleton': str, 'insole': list[str]}}` の形式。
+            値は `{tag:{'skeleton': str, 'insole': list[str]}}` の形式
     """
     # データパスの表示
     print("---"*20)
@@ -69,17 +69,9 @@ def get_datapath_pairs(skeleton_dir, insole_dir):
 def load_and_combine_data(data_pairs):
     """ファイルパスの辞書からデータを読み込み、カテゴリ別に結合したDataFrameを返す。
     Args:
-        data_pairs (dict): タグをキーとし、ファイルパスの辞書を値に持つオブジェクト。
-            値の形式は `{'skeleton': str, 'insole': list[str]}` である必要がある。
-            insoleリストは少なくとも2つの要素（左足、右足のパス）を持つことが前提。
-
+        data_pairs (dict): タグをキーとし、ファイルパスの辞書を値に持つオブジェクト
     Returns:
         tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]: 
-            以下の3つのDataFrameが格納されたタプル
-            1. 全てのスケルトンデータを結合したDataFrame
-            2. 全ての左足インソールデータを結合したDataFrame
-            3. 全ての右足インソールデータを結合したDataFrame
-
     """
     # 各データを格納する配列を作成
     all_skeleton_df     = []
@@ -102,11 +94,12 @@ def load_and_combine_data(data_pairs):
 
 
 def restructure_insole_data(insole_left_df, insole_right_df):
-    """
+    """左右のインソールデータフレームを、圧力データとIMUデータに分割・再結合する。
     Args:
-
+        insole_left_df (pd.DataFrame): 左足のインソールデータを含むDataFrame
+        insole_right_df (pd.DataFrame): 右足のインソールデータを含むDataFrame
     Returns:
-    
+        tuple[pd.DataFrame, pd.DataFrame]: 分割・再結合されたDataFrameのタプル
     """
     # 左足データから各種センサー値を抽出
     pressure_left_df = insole_left_df.drop(["Gyro_x","Gyro_y","Gyro_z","Acc_x","Acc_y","Acc_z"],axis=1)
@@ -122,12 +115,14 @@ def restructure_insole_data(insole_left_df, insole_right_df):
 
     return pressure_lr, IMU_lr
 
-def calculate_grad(pressure_lr, IMU_lr):
-    """
-    Args:
 
+def calculate_grad(pressure_lr, IMU_lr):
+    """圧力データとIMUデータに1次および2次微分を計算し、特徴量として結合する。
+    Args:
+        pressure_lr (np) : 圧力センサーの時系列データ
+        IMU_lr (np.) : IMUの時系列データ
     Returns:
-    
+        tuple[np, np]: 拡張された特徴量を持つタプル
     """
     # 1次微分と2次微分の計算(使用する場合)
     pressure_grad1 = np.gradient(pressure_lr, axis=0)
@@ -154,7 +149,6 @@ def load_config(args,config_path, model):
         path (str): 読み込む設定ファイル（.yaml）のファイルパス。
     Returns:
         dict: YAMLファイルの内容から変換された辞書オブジェクト
-
     """
     # configファイル名が指定されている場合は指定されたパスを、そうでなければモデル名から推測
     if config_path is None:
@@ -188,12 +182,17 @@ class PressureSkeletonDataset(Dataset):
         pressure_data (torch.Tensor): Tensorに変換された圧力データ。
         skeleton_data (torch.Tensor): Tensorに変換された骨格データ。
     """
-    def __init__(self, input_feature, skeleton_data):
-        self.input_data = torch.FloatTensor(input_feature)
-        self.skeleton_data = torch.FloatTensor(skeleton_data.to_numpy())
+    def __init__(self, input_feature, skeleton_data, sequence_length):
+        self.sequence_length = sequence_length
+        self.input_data = input_feature
+        self.skeleton_data = skeleton_data.to_numpy()
         
     def __len__(self):
-        return len(self.input_data)
+        return len(self.input_data) - self.sequence_length
     
-    def __getitem__(self, idx):
-        return self.input_data[idx], self.skeleton_data[idx]
+    def __getitem__(self, index):
+        # 入力シーケンスの切り出し
+        X = self.input_data[index : index + self.sequence_length]
+        y = self.skeleton_data[index + self.sequence_length]
+
+        return torch.tensor(X, dtype=torch.float32), torch.tensor(y, dtype=torch.float32)

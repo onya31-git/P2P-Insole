@@ -16,6 +16,8 @@ train:
   n_head: 8
   num_encoder_layer: 8
   dropout: 0.2
+  sequence_size: 100
+  use_gradient_data: False
 
   # 学習パラメータ
   epoch: 100

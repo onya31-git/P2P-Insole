@@ -4,10 +4,32 @@
 #
 #
 import pandas as pd 
-import numpy as np
+import math
+import time
 import torch 
 import torch.nn as nn
 import torch.nn.functional as F
+
+class PositionalEncoding(nn.Module):
+    def __init__(self, d_model, max_len=5000):
+        super(PositionalEncoding, self).__init__()
+        
+        position = torch.arange(max_len).unsqueeze(1)
+        div_term = torch.exp(torch.arange(0, d_model, 2) * -(math.log(10000.0) / d_model))
+        pe = torch.zeros(1, max_len, d_model)
+        
+        pe[0, :, 0::2] = torch.sin(position * div_term)
+        pe[0, :, 1::2] = torch.cos(position * div_term)
+        
+        self.register_buffer('pe', pe)
+
+    def forward(self, x):
+        # x の形状: [バッチサイズ, シーケンス長, d_model]
+        # self.pe の形状: [1, max_len, d_model]
+        
+        # 入力xに位置情報を加える
+        x = x + self.pe[:, :x.size(1)]
+        return x
 
 class Transformer_Encoder(nn.Module):
     def __init__(self, input_dim, d_model, nhead, num_encoder_layers, num_joints, num_dims=3, dropout=0.1):
@@ -17,23 +39,23 @@ class Transformer_Encoder(nn.Module):
         self.num_joints = num_joints
         self.num_dims = num_dims
 
-        # ★★★ 82次元を512次元に変換する層を追加 ★★★
-        self.input_projection = nn.Linear(82, 512)
-        
+        # positional encordingをインスタンス化
+        self.positional_encoder = PositionalEncoding(d_model)
+
         # 入力の特徴抽出を強化
         self.feature_extractor = nn.Sequential(
-            nn.Linear(input_dim, d_model * 2),
-            nn.LayerNorm(d_model * 2),
+            nn.Linear(input_dim, d_model),
+            nn.LayerNorm(d_model),
             nn.ReLU(),
             nn.Dropout(dropout),
-            nn.Linear(d_model * 2, d_model)
+            nn.Linear(d_model, d_model)
         )
         
         # Transformerネットワーク
         encoder_layer = nn.TransformerEncoderLayer(
             d_model=d_model,
             nhead=nhead,
-            dim_feedforward=d_model * 4,  
+            dim_feedforward=d_model * 4,  # ここも入力から調整する必要があるかも
             dropout=dropout,
             batch_first=True,
             norm_first=True
@@ -46,11 +68,11 @@ class Transformer_Encoder(nn.Module):
         
         # 出力層の強化
         self.output_decoder = nn.Sequential(
-            nn.Linear(d_model, d_model * 2),
-            nn.LayerNorm(d_model * 2),
+            nn.Linear(d_model, d_model),
+            nn.LayerNorm(d_model),
             nn.ReLU(),
             nn.Dropout(dropout),
-            nn.Linear(d_model * 2, d_model),
+            nn.Linear(d_model, d_model),
             nn.ReLU(),
             nn.Linear(d_model, num_joints * num_dims)
         )
@@ -64,15 +86,18 @@ class Transformer_Encoder(nn.Module):
         features = self.feature_extractor(x)
         # features = features.unsqueeze(1)
 
-        # ★★★ Transformerに渡す前に次元を変換 ★★★
-        features = self.input_projection(x)
+        # positional encording
+        features = self.positional_encoder(features)
         
-        # Transformer処理
+        # Transformer_encoder処理
         transformer_output = self.transformer_encoder(features)
-        transformer_output = transformer_output.squeeze(1)
-        
+        # transformer_output = transformer_output.squeeze(1)
+
+        # シーケンスの最後の時点の情報だけを使って予測する
+        last_time_step_output = transformer_output[:, -1, :]
+
         # 出力生成とスケーリング
-        output = self.output_decoder(transformer_output)
+        output = self.output_decoder(last_time_step_output)
         output = output * self.output_scale  # 出力のスケーリング
         
         return output
@@ -104,6 +129,9 @@ class Skeleton_Loss(nn.Module):
 
 def train_Transformer_Encoder(model, train_loader, val_loader, criterion, optimizer, scheduler, num_epochs, save_path, device):
     best_val_loss = float('inf')
+
+    # 開始時間の記録
+    start_time = time.time()
     
     for epoch in range(num_epochs):
         # Training phase
@@ -146,11 +174,19 @@ def train_Transformer_Encoder(model, train_loader, val_loader, criterion, optimi
         # スケジューラのステップ
         scheduler.step(avg_val_loss)
         current_lr = optimizer.param_groups[0]['lr']
+
+        # 経過時間の計測
+        end_time = time.time()
+        elapsed_time_total_s = end_time - start_time
+        elapsed_time_m = int(elapsed_time_total_s//60)
+        elapsed_time_s = int(elapsed_time_total_s%60)
         
-        print(f'Epoch {epoch+1}')
-        print(f'Training Loss: {avg_train_loss:.4f}')
-        print(f'Validation Loss: {avg_val_loss:.4f}')
-        print(f'Learning Rate: {current_lr:.6f}')
+        print(
+            f'Epoch {epoch+1}/{num_epochs} |'
+            f'Train Loss: {avg_train_loss:.4f} |'
+            f'Val Loss: {avg_val_loss:.4f} |'
+            f'LR: {current_lr:.6f} |'
+            f'Time: {elapsed_time_m}m {elapsed_time_s}s |')
         
         # モデルの保存
         if avg_val_loss < best_val_loss:
