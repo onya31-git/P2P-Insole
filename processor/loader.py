@@ -13,6 +13,34 @@ import torch
 from collections import defaultdict
 from torch.utils.data import Dataset
 
+def load_config(args,config_path, model):
+    """指定されたパスからYAMLファイルを読み込み、Pythonオブジェクトとして返す。
+    Args:
+        path (str): 読み込む設定ファイル（.yaml）のファイルパス。
+    Returns:
+        dict: YAMLファイルの内容から変換された辞書オブジェクト
+    """
+    # configファイル名が指定されている場合は指定されたパスを、そうでなければモデル名から推測
+    if config_path is None:
+        config_path = f'config/{model}/{args.mode}.yaml'
+    
+    # 使用したconfigファイルをプロンプトに表示 
+    print(f"<load config>")
+    print(f"Loading configuration from: {config_path}")
+    time.sleep(0.5)
+
+    # configファイルをロード
+    with open(config_path, 'r', encoding='utf-8') as f:
+        config = yaml.safe_load(f)
+    
+    # コマンドライン引数で設定を上書き
+    cli_args = vars(args)   # vars()でargsを辞書に変換
+    for key, value in cli_args.items():  # 値がNoneでない引数はconfigで上書きする
+        if value is not None:           #
+            config[key] = value         #
+
+    return config
+
 
 def get_datapath_pairs(skeleton_dir, insole_dir):
     """指定されたディレクトリから、共通タグを持つskeletonとinsoleのファイルパスをペアリングする。
@@ -141,35 +169,6 @@ def calculate_grad(pressure_lr, IMU_lr):
     ], axis=1)
 
     return pressure_features, IMU_features
-
-
-def load_config(args,config_path, model):
-    """指定されたパスからYAMLファイルを読み込み、Pythonオブジェクトとして返す。
-    Args:
-        path (str): 読み込む設定ファイル（.yaml）のファイルパス。
-    Returns:
-        dict: YAMLファイルの内容から変換された辞書オブジェクト
-    """
-    # configファイル名が指定されている場合は指定されたパスを、そうでなければモデル名から推測
-    if config_path is None:
-        config_path = f'config/{model}/{args.mode}.yaml'
-    
-    # 使用したconfigファイルをプロンプトに表示 
-    print(f"<load config>")
-    print(f"Loading configuration from: {config_path}")
-    time.sleep(1)
-
-    # configファイルをロード
-    with open(config_path, 'r', encoding='utf-8') as f:
-        config = yaml.safe_load(f)
-    
-    # コマンドライン引数で設定を上書き
-    cli_args = vars(args)   # vars()でargsを辞書に変換
-    for key, value in cli_args.items():  # 値がNoneでない引数はconfigで上書きする
-        if value is not None:           #
-            config[key] = value         #
-
-    return config
     
 
 class PressureSkeletonDataset(Dataset):

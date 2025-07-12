@@ -26,25 +26,24 @@ def start(args):
     skeleton_df, insole_left_df, insole_right_df  = load_and_combine_data(skeleton_insole_datapath_pairs)   # 骨格データ、insole data右、insole data左をそれぞれまとめる
     pressure_lr_df, IMU_lr_df = restructure_insole_data(insole_left_df, insole_right_df)                    # insole dataを圧力データとIMUデータに分離、insole dataの左右を結合する
 
-    # モデルパラメータ
-    d_model = config["predict"]["d_model"]
-    n_head = config["predict"]["n_head"]
-    num_encoder_layer = config["predict"]["num_encoder_layer"]
-    dropout = config["predict"]["dropout"]
-    
-    # 損失関数パラメータ
-    loss_alpha = config["predict"]["loss_alpha"]
-    loss_beta = config["predict"]["loss_beta"]
+    # 最終パラメータ設定
+    parameters = {
+        # モデルパラメータ
+        "d_model": config["train"]["d_model"],
+        "n_head": config["train"]["n_head"],
+        "num_encoder_layer": config["train"]["num_encoder_layer"],
+        "dropout": config["train"]["dropout"],
+        
+        # 損失関数パラメータ
+        "loss_alpha": config["train"]["loss_alpha"],
+        "loss_beta": config["train"]["loss_beta"],
 
-    # その他のセッティング
-    input_dim = pressure_lr_df.shape[1] + IMU_lr_df.shape[1] # 圧力+回転+加速度の合計次元数
-    num_joints = skeleton_df.shape[1] // 3  # 3D座標なので3で割る
-    num_dims = 3
-
-    # 最終セッティング
-    input_dim = pressure_lr_df.shape[1] + IMU_lr_df.shape[1]            # TransformerEncoderを使用しない場合は圧力とIMUデータの入力場所を別にするため変更する
-    num_joints = skeleton_df.shape[1] // 3
-    checkpoint_file = './weight/best_skeleton_model.pth'     # 動的に指定できるようにする
+        # その他のセッティング
+        "input_dim": pressure_lr_df.shape[1] + IMU_lr_df.shape[1], # 圧力+回転+加速度の合計次元数    # TransformerEncoderを使用しない場合は圧力とIMUデータの入力場所を別にするため変更する
+        "num_joints": skeleton_df.shape[1] // 3,  # 3D座標なので3で割る
+        "num_dims":  3,
+        "checkpoint_file": config["train"]["checkpoint_file"] # 動的に指定できるようにする
+    }
 
     # # 微分処理を行うならば
     # calculate_grad()
@@ -84,17 +83,17 @@ def start(args):
 
     # モデルの初期化（固定パラメータを使用）
     model = Transformer_Encoder(
-        input_dim=input_dim,
-        d_model= d_model,
-        nhead=n_head,
-        num_encoder_layers=num_encoder_layer,
-        num_joints=num_joints,
-        num_dims=num_dims,
-        dropout=dropout
+        input_dim=parameters["input_dim"], 
+        d_model= parameters["d_model"],
+        nhead=parameters["n_head"],
+        num_encoder_layers=parameters["num_encoder_layer"],
+        num_joints=parameters["num_joints"],
+        num_dims=parameters["num_dims"],
+        dropout=parameters["dropout"]
     ).to(device)
 
     # チェックポイントの読み込み（weights_only=Trueを追加）
-    checkpoint = torch.load(checkpoint_file, map_location=device, weights_only=True)
+    checkpoint = torch.load(parameters["checkpoint_file"], map_location=device, weights_only=True)
 
     # モデルの重みを読み込み
     model.load_state_dict(checkpoint['model_state_dict'])
@@ -120,6 +119,7 @@ def get_parser(add_help=False):
     parser.add_argument('--model', choices=['transformer_encoder','transformer', 'BERT'], default='transformer_encoder', help='モデル選択')
     parser.add_argument('--config', type=str, default=None, help='YAMLファイルのパス')
     parser.add_argument('--data_path', type=str, default=None)
+    parser.add_argument('--checkpoint_file', type=str, default=None)
 
     # モデルパラメータ
     parser.add_argument('--d_model', type=int, default=None)
