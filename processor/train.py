@@ -6,106 +6,98 @@
 import pandas as pd
 import numpy as np
 import argparse
-import time
 import torch
 from torch.utils.data import DataLoader
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
-from scipy.ndimage import gaussian_filter1d
 from sklearn.model_selection import train_test_split
 from processor.loader import get_datapath_pairs, load_and_combine_data, restructure_insole_data, calculate_grad, load_config,  PressureSkeletonDataset
 from processor.util import print_config
 from processor.model import Transformer_Encoder, Skeleton_Loss, train_Transformer_Encoder
 
 def start(args):
-    # YAML設定読み込み
+    # Load YAML file
     config = load_config(args, args.config, args.model)
 
-    # データパスの指定
+    # set data path
     skeleton_dir = config["location"]["data_path"] + "/skeleton/"
     insole_dir   = config["location"]["data_path"] + "/Insole/"
     
-    # skeleton dataとinsole data の前処理
+    # preprocess skeleton data and insole data
     skeleton_insole_datapath_pairs = get_datapath_pairs(skeleton_dir, insole_dir)                           # 骨格データ、insole dataのデータペアを所得
     skeleton_df, insole_left_df, insole_right_df  = load_and_combine_data(skeleton_insole_datapath_pairs)   # 骨格データ、insole data右、insole data左をそれぞれまとめる
     pressure_lr_df, IMU_lr_df = restructure_insole_data(insole_left_df, insole_right_df)                    # insole dataを圧力データとIMUデータに分離、insole dataの左右を結合する
     if config["train"]["use_gradient_data"] == True: calculate_grad()                                       # 微分データの追加(実験用)
+    # input_feature_np = np.concatenate([pressure_lr_df, IMU_lr_df], axis=1)
 
-    # # 正規化と標準化のスケーラー初期化 → 前処理用のコード内に移動
-    # pressure_normalizer = MinMaxScaler()
-    # rotation_normalizer = MinMaxScaler()
-
-    # pressure_standardizer = StandardScaler(with_mean=True, with_std=True)
-    # rotation_standardizer = StandardScaler(with_mean=True, with_std=True)
-    
-    # # NaN値を補正
-    # pressure_lr_df = pressure_lr_df.fillna(0.0)
-    # IMU_lr_df = IMU_lr_df.fillna(0.0)
-    # skeleton_df = skeleton_df.fillna(0.0)
-
-    # # データの正規化と標準化
-    # pressure_lr_df = pressure_standardizer.fit_transform(
-    #     pressure_normalizer.fit_transform(pressure_lr_df)
-    # )
-    # IMU_lr_df = rotation_standardizer.fit_transform(
-    #     rotation_normalizer.fit_transform(IMU_lr_df)
-    # )
-
-    # sigma=2
-    # skeleton_df = skeleton_df.apply(lambda x: gaussian_filter1d(x, sigma=sigma))
-
-    input_feature_np = np.concatenate([pressure_lr_df, IMU_lr_df], axis=1)
-
-    # データの分割
-    train_input_feature, val_input_feature, train_skeleton, val_skeleton = train_test_split(
-        input_feature_np, 
+    # sprit data
+    train_pressure, val_pressure, train_IMU, val_IMU, train_skeleton, val_skeleton = train_test_split(
+        pressure_lr_df, 
+        IMU_lr_df, 
         skeleton_df,
         test_size=0.2, 
-        random_state=42
+        shuffle=False
     )
 
-    # 各種最終セッティング----------------------------------------------------------------------------
+    # スケーラーの初期化
+    pressure_normalizer = MinMaxScaler()
+    imu_normalizer = MinMaxScaler()
+    pressure_standardizer = StandardScaler()
+    imu_standardizer = StandardScaler()
+
+    # 訓練データでスケーラーを学習(fit)させ、適用(transform)する
+    train_pressure_scaled = pressure_standardizer.fit_transform(pressure_normalizer.fit_transform(train_pressure))  # 訓練用圧力データ(fit + transform)
+    train_IMU_scaled = imu_standardizer.fit_transform(imu_normalizer.fit_transform(train_IMU))                      # 訓練用IMUデータ(fit + transform)
+    val_pressure_scaled = pressure_standardizer.transform(pressure_normalizer.transform(val_pressure))              # 検証用圧力データ(fit)
+    val_IMU_scaled = imu_standardizer.transform(imu_normalizer.transform(val_IMU))                                  # 検証用IMUデータ(fit)
+
+    # combine pressure data and IMU data
+    train_input_feature = np.concatenate([train_pressure_scaled, train_IMU_scaled], axis=1)
+    val_input_feature = np.concatenate([val_pressure_scaled, val_IMU_scaled], axis=1) 
+
+    # set final train parameters----------------------------------------------------------------------------
     parameters = {
-        # モデルパラメータ
+        # model
         "d_model": config["train"]["d_model"],
         "n_head": config["train"]["n_head"],
         "num_encoder_layer": config["train"]["num_encoder_layer"],
         "dropout": config["train"]["dropout"],
-        "sequence_len": config["train"]["sequence_size"],
 
-        # 学習パラメータ
+        # learning
         "num_epoch": config["train"]["epoch"],
         "batch_size": config["train"]["batch_size"],
 
-        # 最適化パラメータ
+        # optimize
         "learning_rate": config["train"]["learning_rate"],
         "weight_decay": config["train"]["weight_decay"],
         
-        # 損失関数パラメータ
+        # loss function
         "loss_alpha": config["train"]["loss_alpha"],
         "loss_beta": config["train"]["loss_beta"],
 
-        # その他のセッティング
+        # others
+        "use_gradient_data": config["train"]["use_gradient_data"],
+        "sequence_len": config["train"]["sequence_len"],
         "input_dim": pressure_lr_df.shape[1] + IMU_lr_df.shape[1], # 圧力+回転+加速度の合計次元数
-        "num_joints": skeleton_df.shape[1] // 3,  # 3D座標なので3で割る
+        "num_joints": skeleton_df.shape[1] // 3, # 3D座標なので3で割る
         "num_dims":  3
     }
-    # <デバッグ>設定内容の表示
+    # <debug> print train parameters
     print_config(parameters)
     #-------------------------------------------------------------------------------------------------
 
-    # デバイスの設定
+    # set device
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
 
-    # データローダーの設定
+    # make dataset
     train_dataset = PressureSkeletonDataset(train_input_feature, train_skeleton, sequence_length=parameters["sequence_len"])
     val_dataset = PressureSkeletonDataset(val_input_feature, val_skeleton, sequence_length=parameters["sequence_len"])
     
-    # データロード
+    # set dataloader
     train_loader = DataLoader(
         train_dataset,
         batch_size=parameters["batch_size"],
-        shuffle=True,
+        shuffle=False,               
         num_workers=4,
         pin_memory=True
     )
@@ -117,8 +109,9 @@ def start(args):
         pin_memory=True
     )
     # モードごとにMLモデルを分岐させる
+    # if(args.model == "transformer_encoder"):
 
-    # モデルの初期化
+    # initialize model
     model = Transformer_Encoder(
         input_dim= parameters["input_dim"],
         d_model= parameters["d_model"],
@@ -129,14 +122,17 @@ def start(args):
         dropout=parameters["dropout"]
     ).to(device)
 
-    # 損失関数、オプティマイザ、スケジューラの設定
-    criterion = Skeleton_Loss(alpha=1.0, beta=0.1)
+    # set loss function
+    criterion = Skeleton_Loss(alpha=parameters["loss_alpha"], beta=parameters["loss_beta"])
+
+    # set optimizer
     optimizer = torch.optim.AdamW(
         model.parameters(),
         lr=parameters["learning_rate"],
         weight_decay=parameters["weight_decay"],
         betas=(0.9, 0.999)
     )
+    # set scheduler
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
         optimizer,
         mode='min',
@@ -144,7 +140,7 @@ def start(args):
         patience=5,
     )
 
-    # トレーニング実行
+    # start model training
     train_Transformer_Encoder(
         model,
         train_loader,
@@ -157,7 +153,7 @@ def start(args):
         device=device
     )
 
-    # モデルの保存(ファイル名に日付を含めるようにする)
+    # keep checkpoint
     final_checkpoint = {
         'model_state_dict': model.state_dict(),
         'optimizer_state_dict': optimizer.state_dict(),
@@ -182,7 +178,7 @@ def get_parser(add_help=False):
     parser.add_argument('--model', choices=['transformer_encoder','transformer', 'BERT'], default='transformer_encoder', help='モデル選択')
     parser.add_argument('--config', type=str, default=None, help='YAMLファイルのパス')
     parser.add_argument('--data_path', type=str, default=None)
-    parser.add_argument('--sequence_size', type=str, default=None)
+    parser.add_argument('--sequence_len', type=str, default=None)
     parser.add_argument('--use_gradient_data', type=str, default=None)
 
     # モデルパラメータ

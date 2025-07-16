@@ -11,15 +11,13 @@ location:
   config_path: "config/transformer_encoder/test.yaml"
 
 predict:
-  # モデルのパラメータ
+  # model
   d_model: 512
   n_head: 8
   num_encoder_layer: 8
   dropout: 0.2
+  batch_size: 128
+  sequence_len: 50
 
-  # 損失関数パラメータ
-  loss_alpha: 1.0
-  loss_beta: 0.1
-
-  # 重みファイルのパス
+  # check point file path
   checkpoint_file: './weight/best_skeleton_model.pth'

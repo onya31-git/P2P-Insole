@@ -195,3 +195,23 @@ class PressureSkeletonDataset(Dataset):
         y = self.skeleton_data[index + self.sequence_length]
 
         return torch.tensor(X, dtype=torch.float32), torch.tensor(y, dtype=torch.float32)
+    
+
+class PressureDataset(Dataset):
+    """
+    予測用の入力データを扱うためのPyTorchカスタムデータセット。
+    
+    Args:
+        features (np.ndarray): 予測したい入力データ（Numpy配列）
+    """
+    def __init__(self, features):
+        # データをfloat型のPyTorchテンソルに変換
+        self.features = torch.tensor(features, dtype=torch.float32)
+
+    def __len__(self):
+        # データの総数がそのままデータセットの長さになります
+        return len(self.features)
+
+    def __getitem__(self, idx):
+        # 1行分のデータだけを返します
+        return self.features[idx]

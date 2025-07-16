@@ -3,9 +3,9 @@ import plotly.graph_objects as go
 import numpy as np
 
 # 文件路径设置（请根据你的实际路径进行修改）
-file_path_real = "./data/20250517old_data/20241115test3/Opti-track/Take 2024-11-15 03.44.00 PM.csv"
+file_path_real = "./data/test_data/Skeleton/T005S008_skeleton.csv"
 # file_path_real = "./data/20250518test3/Opti-track/3_final/Take 2024-11-15 03.49.59 PM.csv"
-file_path_predict = "./output/BERT_predicted_skeleton.csv"
+file_path_predict = "./output/predicted_skeleton.csv"
 
 # 关节连接关系（骨架结构）
 bones = [
@@ -100,7 +100,7 @@ try:
     # 同步帧数量和下采样
     start_frame = 0
     end_frame = min(len(frames_data_real), len(frames_data_pred))
-    step = 5
+    step = 50
 
     frames_data_real = frames_data_real[start_frame:end_frame:step]
     frames_data_pred = frames_data_pred[start_frame:end_frame:step]

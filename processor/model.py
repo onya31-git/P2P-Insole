@@ -11,7 +11,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class PositionalEncoding(nn.Module):
-    def __init__(self, d_model, max_len=5000):
+    def __init__(self, d_model, max_len=100000):
         super(PositionalEncoding, self).__init__()
         
         position = torch.arange(max_len).unsqueeze(1)
@@ -23,11 +23,7 @@ class PositionalEncoding(nn.Module):
         
         self.register_buffer('pe', pe)
 
-    def forward(self, x):
-        # x の形状: [バッチサイズ, シーケンス長, d_model]
-        # self.pe の形状: [1, max_len, d_model]
-        
-        # 入力xに位置情報を加える
+    def forward(self, x):                       # x の形状: [バッチサイズ, シーケンス長, d_model]
         x = x + self.pe[:, :x.size(1)]
         return x
 
@@ -35,23 +31,21 @@ class Transformer_Encoder(nn.Module):
     def __init__(self, input_dim, d_model, nhead, num_encoder_layers, num_joints, num_dims=3, dropout=0.1):
         super().__init__()
 
-        # クラス属性としてnum_jointsを保存
         self.num_joints = num_joints
         self.num_dims = num_dims
 
-        # positional encordingをインスタンス化
-        self.positional_encoder = PositionalEncoding(d_model)
-
-        # 入力の特徴抽出を強化
+        # first layer
         self.feature_extractor = nn.Sequential(
             nn.Linear(input_dim, d_model),
             nn.LayerNorm(d_model),
             nn.ReLU(),
             nn.Dropout(dropout),
-            nn.Linear(d_model, d_model)
-        )
-        
-        # Transformerネットワーク
+            nn.Linear(d_model, d_model))
+
+        # positional encording
+        self.positional_encoder = PositionalEncoding(d_model)
+
+        # Transformer encorder layre
         encoder_layer = nn.TransformerEncoderLayer(
             d_model=d_model,
             nhead=nhead,
@@ -60,13 +54,14 @@ class Transformer_Encoder(nn.Module):
             batch_first=True,
             norm_first=True
         )
-        
+
+        # transformer encoder
         self.transformer_encoder = nn.TransformerEncoder(
             encoder_layer,
             num_layers=num_encoder_layers
         )
         
-        # 出力層の強化
+        # output layer
         self.output_decoder = nn.Sequential(
             nn.Linear(d_model, d_model),
             nn.LayerNorm(d_model),
@@ -77,29 +72,16 @@ class Transformer_Encoder(nn.Module):
             nn.Linear(d_model, num_joints * num_dims)
         )
         
-        # スケール係数（学習可能パラメータ）
+        # scaling factor
         self.output_scale = nn.Parameter(torch.ones(1))
     
     def forward(self, x):
-
-        # 特徴抽出
-        features = self.feature_extractor(x)
-        # features = features.unsqueeze(1)
-
-        # positional encording
-        features = self.positional_encoder(features)
-        
-        # Transformer_encoder処理
-        transformer_output = self.transformer_encoder(features)
-        # transformer_output = transformer_output.squeeze(1)
-
-        # シーケンスの最後の時点の情報だけを使って予測する
-        last_time_step_output = transformer_output[:, -1, :]
-
-        # 出力生成とスケーリング
-        output = self.output_decoder(last_time_step_output)
-        output = output * self.output_scale  # 出力のスケーリング
-        
+        features = self.feature_extractor(x)                        # 特徴抽出
+        features = self.positional_encoder(features)                # positional encording
+        transformer_output = self.transformer_encoder(features)     # Transformer_encoder処理
+        last_time_step_output = transformer_output[:, -1, :]        # シーケンスの最後の時点の情報を抽出
+        output = self.output_decoder(last_time_step_output)         # 出力生成とスケーリング
+        output = output * self.output_scale                         # 出力のスケーリング
         return output
 
 class Skeleton_Loss(nn.Module):
@@ -109,22 +91,21 @@ class Skeleton_Loss(nn.Module):
         self.beta = beta
         
     def forward(self, pred, target):
-        # MSE損失
         mse_loss = F.mse_loss(pred, target)
+        return mse_loss
+        # # 変化量の損失
+        # motion_loss = F.mse_loss(
+        #     pred[1:] - pred[:-1],
+        #     target[1:] - target[:-1]
+        # )
         
-        # 変化量の損失
-        motion_loss = F.mse_loss(
-            pred[1:] - pred[:-1],
-            target[1:] - target[:-1]
-        )
+        # # 加速度の損失
+        # accel_loss = F.mse_loss(
+        #     pred[2:] + pred[:-2] - 2 * pred[1:-1],
+        #     target[2:] + target[:-2] - 2 * target[1:-1]
+        # )
         
-        # 加速度の損失
-        accel_loss = F.mse_loss(
-            pred[2:] + pred[:-2] - 2 * pred[1:-1],
-            target[2:] + target[:-2] - 2 * target[1:-1]
-        )
-        
-        return self.alpha * mse_loss + self.beta * (motion_loss + accel_loss)
+        # return self.alpha * mse_loss + self.beta * (motion_loss + accel_loss)
     
 
 def train_Transformer_Encoder(model, train_loader, val_loader, criterion, optimizer, scheduler, num_epochs, save_path, device):
@@ -181,12 +162,11 @@ def train_Transformer_Encoder(model, train_loader, val_loader, criterion, optimi
         elapsed_time_m = int(elapsed_time_total_s//60)
         elapsed_time_s = int(elapsed_time_total_s%60)
         
-        print(
-            f'Epoch {epoch+1}/{num_epochs} |'
-            f'Train Loss: {avg_train_loss:.4f} |'
-            f'Val Loss: {avg_val_loss:.4f} |'
-            f'LR: {current_lr:.6f} |'
-            f'Time: {elapsed_time_m}m {elapsed_time_s}s |')
+        print(f'----- Epoch {epoch+1}/{num_epochs} -----\n'
+              f'Train Loss: {avg_train_loss:.4f}\n'
+              f'Val Loss:   {avg_val_loss:.4f}\n'
+              f'LR:         {current_lr:.6f}\n' 
+              f'Time:       {elapsed_time_m}m {elapsed_time_s}s' )
         
         # モデルの保存
         if avg_val_loss < best_val_loss:
@@ -199,9 +179,7 @@ def train_Transformer_Encoder(model, train_loader, val_loader, criterion, optimi
                 'best_val_loss': best_val_loss,
             }
             torch.save(checkpoint, save_path)
-            print(f'Model saved at epoch {epoch+1}')
-        
-        print('-' * 60)
+            print(f'>> Model saved at epoch {epoch+1}')
 
 
 def load_Transformer_Encoder(model, optimizer, scheduler, checkpoint_path):

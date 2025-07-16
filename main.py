@@ -1,13 +1,13 @@
-#モデルのコントローラ
+# model controller
 #
-# # modeごとに動的にコンフィグファイルを指定したい。
-# # パラメータをコマンドライン引数から設定できるように変更する
+# 
+# 
 #
 import argparse
 import importlib as iml
     
 def main():
-    # processor辞書の作成
+    # make processor
     processors = {
         'train': iml.import_module('processor.train'),
         'predict': iml.import_module('processor.predict'),
@@ -17,7 +17,7 @@ def main():
     }
 
     # read main-parser
-    parser = argparse.ArgumentParser(description='メイン実行スクリプト')
+    parser = argparse.ArgumentParser(description='main execute script')
     subparsers = parser.add_subparsers(dest='mode', required=True)
 
     # read sub-parser
@@ -25,11 +25,11 @@ def main():
         subparsers.add_parser(name, parents=[module.get_parser()], add_help=False)
 
     # read arguments
-    arg = parser.parse_args()           # コマンドライン引数を解析
+    arg = parser.parse_args()       # get comandline argments
     
     # start
-    exep = processors[arg.mode]  # 選択されたキーからクラスを取得
-    exep.start(arg)                         # 実際の処理を開始
+    exep = processors[arg.mode]     # set processor mode
+    exep.start(arg)                 # start execute file
 
 if __name__ == '__main__':
     main()

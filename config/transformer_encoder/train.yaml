@@ -1,4 +1,4 @@
-# 学習時のパラメータをyamlで指定する
+# 学習時のパラメータ用のYAML
 #
 #
 #
@@ -11,22 +11,24 @@ location:
   config_path: "config/transformer_encoder/train.yaml"
 
 train:
-  # モデルのパラメータ
+  # model
   d_model: 512
   n_head: 8
   num_encoder_layer: 8
   dropout: 0.2
-  sequence_size: 100
-  use_gradient_data: False
 
-  # 学習パラメータ
+  # train
   epoch: 100
   batch_size: 128
 
-  # 最適化パラメータ
+  # optimize
   learning_rate: 0.001
   weight_decay: 0.001
 
-  # 損失関数パラメータ
+  # Loss fanction
   loss_alpha: 1.0
   loss_beta: 0.1
+
+  # others
+  sequence_len: 50
+  use_gradient_data: False
