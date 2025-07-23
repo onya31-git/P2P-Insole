@@ -25,7 +25,8 @@ class PositionalEncoding(nn.Module):
         
         self.register_buffer('pe', pe)
 
-    def forward(self, x):                       # x の形状: [バッチサイズ, シーケンス長, d_model]
+    def forward(self, x):
+        # x の形状: [バッチサイズ, シーケンス長, d_model]
         x = x + self.pe[:, :x.size(1)]
         return x
 
@@ -38,52 +39,48 @@ class Transformer_Encoder(nn.Module):
 
         # first layer
         self.feature_extractor = nn.Sequential(
-            nn.Linear(input_dim, d_model),
-            nn.LayerNorm(d_model),
-            nn.ReLU(),
-            nn.Dropout(dropout),
-            nn.Linear(d_model, d_model))
+            nn.Linear(input_dim, d_model),  # 次元を調整
+            nn.LayerNorm(d_model),          # 学習を安定化
+            nn.ReLU(),                      # 活性化関数 (Mishもあり)
+            nn.Dropout(dropout),            # 過学習を防止
+            nn.Linear(d_model, d_model))    # 次元を調整
 
         # positional encording
         self.positional_encoder = PositionalEncoding(d_model)
 
-        # Transformer encorder layre
-        encoder_layer = nn.TransformerEncoderLayer(
-            d_model=d_model,
-            nhead=nhead,
-            dim_feedforward=d_model * 4,  # ここも入力から調整する必要があるかも
-            dropout=dropout,
-            batch_first=True,
-            norm_first=True
-        )
-
         # transformer encoder
         self.transformer_encoder = nn.TransformerEncoder(
-            encoder_layer,
+            nn.TransformerEncoderLayer(
+                d_model=d_model,              # モデルの次元(高いほどモデルの表現力が上がる)
+                nhead=nhead,                  # Attention headの数
+                dim_feedforward=d_model * 4,  # FeedForward layerの数(ここも入力から調整する必要があるかも)
+                dropout=dropout,              # ドロップアウト正則化
+                batch_first=True,             # 
+                norm_first=True),             # 
+
             num_layers=num_encoder_layers
         )
         
         # output layer
         self.output_decoder = nn.Sequential(
-            nn.Linear(d_model, d_model),
-            nn.LayerNorm(d_model),
-            nn.ReLU(),
-            nn.Dropout(dropout),
-            nn.Linear(d_model, d_model),
-            nn.ReLU(),
-            nn.Linear(d_model, num_joints * num_dims)
-        )
+            nn.Linear(d_model, d_model),                # 次元を調整
+            nn.LayerNorm(d_model),                      # 学習の安定化
+            nn.ReLU(),                                  # 活性化関数(Mishはいかが?)
+            nn.Dropout(dropout),                        # ドロップアウト正則化
+            nn.Linear(d_model, d_model),                # 次元を調整
+            nn.ReLU(),                                  # 活性化関数
+            nn.Linear(d_model, num_joints * num_dims))  # 最終出力層(関節点の出力)
         
         # scaling factor
-        self.output_scale = nn.Parameter(torch.ones(1))
+        self.output_scale = nn.Parameter(torch.ones(1)) 
     
     def forward(self, x):
-        features = self.feature_extractor(x)                        # 特徴抽出
-        features = self.positional_encoder(features)                # positional encording
-        transformer_output = self.transformer_encoder(features)     # Transformer_encoder処理
-        last_time_step_output = transformer_output[:, -1, :]        # シーケンスの最後の時点の情報を抽出
-        output = self.output_decoder(last_time_step_output)         # 出力生成とスケーリング
-        output = output * self.output_scale                         # 出力のスケーリング
+        features = self.feature_extractor(x)                     # 特徴抽出
+        features = self.positional_encoder(features)             # positional encording
+        transformer_output = self.transformer_encoder(features)  # Transformer_encoder処理
+        last_time_step_output = transformer_output[:, -1, :]     # シーケンスの最後の時点の情報を抽出
+        output = self.output_decoder(last_time_step_output)      # 出力生成とスケーリング
+        output = output * self.output_scale                      # 出力のスケーリング
         return output
 
 class Skeleton_Loss(nn.Module):
@@ -93,19 +90,17 @@ class Skeleton_Loss(nn.Module):
         self.beta = beta
         
     def forward(self, pred, target):
-        mse_loss = F.mse_loss(pred, target)
+        mse_loss = F.mse_loss(pred, target)  # シンプルな MSE Loss
         return mse_loss
         # # 変化量の損失
         # motion_loss = F.mse_loss(
         #     pred[1:] - pred[:-1],
-        #     target[1:] - target[:-1]
-        # )
+        #     target[1:] - target[:-1])
         
         # # 加速度の損失
         # accel_loss = F.mse_loss(
         #     pred[2:] + pred[:-2] - 2 * pred[1:-1],
-        #     target[2:] + target[:-2] - 2 * target[1:-1]
-        # )
+        #     target[2:] + target[:-2] - 2 * target[1:-1])
         
         # return self.alpha * mse_loss + self.beta * (motion_loss + accel_loss)
     

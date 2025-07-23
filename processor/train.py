@@ -19,18 +19,20 @@ def start(args):
     # Load YAML file
     config = load_config(args, args.config, args.model)
 
-    # set data path
+    # Set data path
     skeleton_dir = config["location"]["data_path"] + "/skeleton/"
     insole_dir   = config["location"]["data_path"] + "/Insole/"
     
-    # preprocess skeleton data and insole data
+    # Preprocess skeleton data and insole data
+    # Load the data and combine the left and right insole data, then separate it into pressure data and IMU data.
     skeleton_insole_datapath_pairs = get_datapath_pairs(skeleton_dir, insole_dir)                           # 骨格データ、insole dataのデータペアを所得
     skeleton_df, insole_left_df, insole_right_df  = load_and_combine_data(skeleton_insole_datapath_pairs)   # 骨格データ、insole data右、insole data左をそれぞれまとめる
     pressure_lr_df, IMU_lr_df = restructure_insole_data(insole_left_df, insole_right_df)                    # insole dataを圧力データとIMUデータに分離、insole dataの左右を結合する
     if config["train"]["use_gradient_data"] == True: calculate_grad()                                       # 微分データの追加(実験用)
     # input_feature_np = np.concatenate([pressure_lr_df, IMU_lr_df], axis=1)
 
-    # sprit data
+    # Sprit data
+    # Skeletal data, pressure data, and IMU data are each split 8:2
     train_pressure, val_pressure, train_IMU, val_IMU, train_skeleton, val_skeleton = train_test_split(
         pressure_lr_df, 
         IMU_lr_df, 
@@ -39,12 +41,12 @@ def start(args):
         shuffle=False
     )
 
-    # スケーラーの初期化
+    # Initialize scaler
     pressure_normalizer   = MinMaxScaler()
     imu_normalizer        = MinMaxScaler()
     skeleton_scaler       = MinMaxScaler()
 
-    # 訓練データでスケーラーを学習(fit)させ、適用(transform)する
+    # Fit the scaler on the training data and transform
     train_pressure_scaled = pressure_normalizer.fit_transform(train_pressure)  # 訓練用圧力データ(fit + transform)
     train_IMU_scaled      = imu_normalizer.fit_transform(train_IMU)            # 訓練用IMUデータ(fit + transform)
     train_skeleton_scaled = skeleton_scaler.fit_transform(train_skeleton)      # 訓練用骨格データ(fit + transform)
@@ -52,6 +54,8 @@ def start(args):
     val_IMU_scaled        = imu_normalizer.transform(val_IMU)                  # 検証用IMUデータ(fit)      
     val_skeleton_scaled   = skeleton_scaler.transform(val_skeleton)            # 検証用骨格データ(fit)  
 
+    # save scaler
+    # When I predict the model, I need to use same scaler.
     joblib.dump(skeleton_scaler, './scaler/skeleton_scaler.pkl')
 
     # combine pressure data and IMU data
@@ -63,7 +67,7 @@ def start(args):
         # model
         "d_model"            : config["train"]["d_model"],
         "n_head"             : config["train"]["n_head"],
-        "num_encoder_layer"  : config["train"]["num_encoder_layer"],
+        "num_encoder_layer"  : config["train"]["num_encoder_layer"],    # numなのかnなのか統一した方がいい、 他の記号も同様に(d = dim, n = num, s = size, l = len)
         "dropout"            : config["train"]["dropout"],
 
         # learning

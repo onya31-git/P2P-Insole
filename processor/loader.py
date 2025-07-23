@@ -1,6 +1,6 @@
 # load関係の関数
 #
-#
+#   関数の移動を検討する
 #
 #
 import pandas as pd
