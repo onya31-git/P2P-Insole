@@ -6,10 +6,10 @@
 import numpy as np
 import pandas as pd
 import argparse
+import joblib
 import torch
 from torch.utils.data import DataLoader
-from sklearn.preprocessing import MinMaxScaler, StandardScaler
-from scipy.ndimage import gaussian_filter1d
+from sklearn.preprocessing import MinMaxScaler
 from processor.loader import get_datapath_pairs, load_and_combine_data, restructure_insole_data, load_config, PressureDataset
 from processor.model import Transformer_Encoder, save_predictions
 
@@ -30,29 +30,27 @@ def start(args):
     # スケーラーの初期化
     pressure_normalizer = MinMaxScaler()
     imu_normalizer = MinMaxScaler()
-    pressure_standardizer = StandardScaler()
-    imu_standardizer = StandardScaler()
 
     # 訓練データでスケーラーを学習(fit)させ、適用(transform)する
-    pressure_scaled = pressure_standardizer.fit_transform(pressure_normalizer.fit_transform(pressure_lr_df))  # 訓練用圧力データ(fit + transform)
-    IMU_scaled = imu_standardizer.fit_transform(imu_normalizer.fit_transform(IMU_lr_df))                      # 訓練用IMUデータ(fit + transform)
+    pressure_scaled  =  pressure_normalizer.fit_transform(pressure_lr_df)   # 訓練用圧力データ(fit + transform)
+    IMU_scaled       =  imu_normalizer.fit_transform(IMU_lr_df)             # 訓練用IMUデータ(fit + transform)
     input_feature_np = np.concatenate([pressure_scaled, IMU_scaled], axis=1)
 
     # 最終パラメータ設定
     parameters = {
         # モデルパラメータ
-        "d_model": config["predict"]["d_model"],
-        "n_head": config["predict"]["n_head"],
-        "num_encoder_layer": config["predict"]["num_encoder_layer"],
-        "dropout": config["predict"]["dropout"],
-        "batch_size": config["predict"]["batch_size"],
-        "sequence_len": config["predict"]["sequence_len"],
+        "d_model"            : config["predict"]["d_model"],
+        "n_head"             : config["predict"]["n_head"],
+        "num_encoder_layer"  : config["predict"]["num_encoder_layer"],
+        "dropout"            : config["predict"]["dropout"],
+        "batch_size"         : config["predict"]["batch_size"],
+        "sequence_len"       : config["predict"]["sequence_len"],
 
         # その他のセッティング
-        "input_dim": pressure_lr_df.shape[1] + IMU_lr_df.shape[1], # 圧力+回転+加速度の合計次元数    # TransformerEncoderを使用しない場合は圧力とIMUデータの入力場所を別にするため変更する
-        "num_joints": skeleton_df.shape[1] // 3,  # 3D座標なので3で割る
-        "num_dims":  3,
-        "checkpoint_file": config["predict"]["checkpoint_file"] # 動的に指定できるようにする
+        "input_dim"          : pressure_lr_df.shape[1] + IMU_lr_df.shape[1], # 圧力+回転+加速度の合計次元数    # TransformerEncoderを使用しない場合は圧力とIMUデータの入力場所を別にするため変更する
+        "num_joints"         : skeleton_df.shape[1] // 3,  # 3D座標なので3で割る
+        "num_dims"           :  3,
+        "checkpoint_file"    : config["predict"]["checkpoint_file"] # 動的に指定できるようにする
     }
 
     # # 微分処理を行うならば
@@ -88,10 +86,6 @@ def start(args):
     # チェックポイントの読み込み
     state_dict = torch.load(parameters["checkpoint_file"], map_location=device, weights_only=True)
 
-    # 問題となっているキーを state_dict から削除(後に必要なくなる)
-    if 'positional_encoder.pe' in state_dict:
-        del state_dict['positional_encoder.pe']
-
     # 3. 予測結果を格納するためのリスト
     all_predictions = []
 
@@ -112,29 +106,21 @@ def start(args):
     # save_predictions(predictions, args.model)
 
     with torch.no_grad():
-        # 4. データローダーからバッチ単位でデータを取り出してループ処理
+        # データローダーからバッチ単位でデータを取り出してループ処理
         for i in range(len(input_tensor) - parameters["sequence_len"]):
-            # sequence_lenの長さでシーケンスを切り出す
-            sequence = input_tensor[i : i + parameters["sequence_len"]]
-            
-            # モデルが要求する3D形状 [1, sequence_len, features] に変換
-            sequence = sequence.unsqueeze(0)
-            
-            # モデルで予測を実行
-            prediction = model(sequence)
-            
-            # 結果をリストに保存
-            all_predictions.append(prediction.cpu())
+            sequence = input_tensor[i : i + parameters["sequence_len"]]  # sequence_lenの長さでシーケンスを切り出す
+            sequence = sequence.unsqueeze(0)                             # モデルが要求する3D形状 [1, sequence_len, features] に変換
+            prediction = model(sequence)                                 # モデルで予測を実行
+            all_predictions.append(prediction.cpu())                     # 結果をリストに保存
 
-    # 5. 全てのバッチの予測結果を一つのテンソルに結合
+    # 全てのバッチの予測結果を一つのテンソルに結合
     final_predictions = torch.cat(all_predictions, dim=0)
     final_predictions_np = final_predictions.numpy()
+    skeleton_scaler = joblib.load('./scaler/skeleton_scaler.pkl')
+    final_predictions_np = skeleton_scaler.inverse_transform(final_predictions_np)
 
     print(f"Prediction finished. Output shape: {final_predictions_np.shape}")
-    # → 期待される形状: (93630, 出力次元数)
-
-    save_predictions(final_predictions, args.model)
-
+    save_predictions(final_predictions_np, args.model)
     return 
 
 

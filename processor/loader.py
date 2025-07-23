@@ -184,7 +184,7 @@ class PressureSkeletonDataset(Dataset):
     def __init__(self, input_feature, skeleton_data, sequence_length):
         self.sequence_length = sequence_length
         self.input_data = input_feature
-        self.skeleton_data = skeleton_data.to_numpy()
+        self.skeleton_data = skeleton_data
         
     def __len__(self):
         return len(self.input_data) - self.sequence_length

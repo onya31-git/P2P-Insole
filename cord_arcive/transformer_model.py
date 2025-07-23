@@ -70,7 +70,7 @@ class EnhancedSkeletonTransformer(nn.Module):
         # 特徴抽出
         features = self.feature_extractor(x)
         features = features.unsqueeze(1)
-        
+                
         # Transformer処理
         transformer_output = self.transformer_encoder(features)
         transformer_output = transformer_output.squeeze(1)

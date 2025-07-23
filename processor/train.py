@@ -7,8 +7,9 @@ import pandas as pd
 import numpy as np
 import argparse
 import torch
+import joblib
 from torch.utils.data import DataLoader
-from sklearn.preprocessing import MinMaxScaler, StandardScaler
+from sklearn.preprocessing import MinMaxScaler
 from sklearn.model_selection import train_test_split
 from processor.loader import get_datapath_pairs, load_and_combine_data, restructure_insole_data, calculate_grad, load_config,  PressureSkeletonDataset
 from processor.util import print_config
@@ -39,47 +40,50 @@ def start(args):
     )
 
     # スケーラーの初期化
-    pressure_normalizer = MinMaxScaler()
-    imu_normalizer = MinMaxScaler()
-    pressure_standardizer = StandardScaler()
-    imu_standardizer = StandardScaler()
+    pressure_normalizer   = MinMaxScaler()
+    imu_normalizer        = MinMaxScaler()
+    skeleton_scaler       = MinMaxScaler()
 
     # 訓練データでスケーラーを学習(fit)させ、適用(transform)する
-    train_pressure_scaled = pressure_standardizer.fit_transform(pressure_normalizer.fit_transform(train_pressure))  # 訓練用圧力データ(fit + transform)
-    train_IMU_scaled = imu_standardizer.fit_transform(imu_normalizer.fit_transform(train_IMU))                      # 訓練用IMUデータ(fit + transform)
-    val_pressure_scaled = pressure_standardizer.transform(pressure_normalizer.transform(val_pressure))              # 検証用圧力データ(fit)
-    val_IMU_scaled = imu_standardizer.transform(imu_normalizer.transform(val_IMU))                                  # 検証用IMUデータ(fit)
+    train_pressure_scaled = pressure_normalizer.fit_transform(train_pressure)  # 訓練用圧力データ(fit + transform)
+    train_IMU_scaled      = imu_normalizer.fit_transform(train_IMU)            # 訓練用IMUデータ(fit + transform)
+    train_skeleton_scaled = skeleton_scaler.fit_transform(train_skeleton)      # 訓練用骨格データ(fit + transform)
+    val_pressure_scaled   = pressure_normalizer.transform(val_pressure)        # 検証用圧力データ(fit)
+    val_IMU_scaled        = imu_normalizer.transform(val_IMU)                  # 検証用IMUデータ(fit)      
+    val_skeleton_scaled   = skeleton_scaler.transform(val_skeleton)            # 検証用骨格データ(fit)  
+
+    joblib.dump(skeleton_scaler, './scaler/skeleton_scaler.pkl')
 
     # combine pressure data and IMU data
     train_input_feature = np.concatenate([train_pressure_scaled, train_IMU_scaled], axis=1)
-    val_input_feature = np.concatenate([val_pressure_scaled, val_IMU_scaled], axis=1) 
+    val_input_feature   = np.concatenate([val_pressure_scaled, val_IMU_scaled], axis=1) 
 
     # set final train parameters----------------------------------------------------------------------------
     parameters = {
         # model
-        "d_model": config["train"]["d_model"],
-        "n_head": config["train"]["n_head"],
-        "num_encoder_layer": config["train"]["num_encoder_layer"],
-        "dropout": config["train"]["dropout"],
+        "d_model"            : config["train"]["d_model"],
+        "n_head"             : config["train"]["n_head"],
+        "num_encoder_layer"  : config["train"]["num_encoder_layer"],
+        "dropout"            : config["train"]["dropout"],
 
         # learning
-        "num_epoch": config["train"]["epoch"],
-        "batch_size": config["train"]["batch_size"],
+        "num_epoch"          : config["train"]["epoch"],
+        "batch_size"         : config["train"]["batch_size"],
 
         # optimize
-        "learning_rate": config["train"]["learning_rate"],
-        "weight_decay": config["train"]["weight_decay"],
+        "learning_rate"      : config["train"]["learning_rate"],
+        "weight_decay"       : config["train"]["weight_decay"],
         
         # loss function
-        "loss_alpha": config["train"]["loss_alpha"],
-        "loss_beta": config["train"]["loss_beta"],
+        "loss_alpha"         : config["train"]["loss_alpha"],
+        "loss_beta"          : config["train"]["loss_beta"],
 
         # others
-        "use_gradient_data": config["train"]["use_gradient_data"],
-        "sequence_len": config["train"]["sequence_len"],
-        "input_dim": pressure_lr_df.shape[1] + IMU_lr_df.shape[1], # 圧力+回転+加速度の合計次元数
-        "num_joints": skeleton_df.shape[1] // 3, # 3D座標なので3で割る
-        "num_dims":  3
+        "use_gradient_data"  : config["train"]["use_gradient_data"],
+        "sequence_len"       : config["train"]["sequence_len"],
+        "input_dim"          : pressure_lr_df.shape[1] + IMU_lr_df.shape[1], # 圧力+回転+加速度の合計次元数
+        "num_joints"         : skeleton_df.shape[1] // 3,                    # 3D座標なので3で割る
+        "num_dims"           :  3
     }
     # <debug> print train parameters
     print_config(parameters)
@@ -90,8 +94,8 @@ def start(args):
     print(f"Using device: {device}")
 
     # make dataset
-    train_dataset = PressureSkeletonDataset(train_input_feature, train_skeleton, sequence_length=parameters["sequence_len"])
-    val_dataset = PressureSkeletonDataset(val_input_feature, val_skeleton, sequence_length=parameters["sequence_len"])
+    train_dataset = PressureSkeletonDataset(train_input_feature, train_skeleton_scaled, sequence_length=parameters["sequence_len"])
+    val_dataset = PressureSkeletonDataset(val_input_feature, val_skeleton_scaled, sequence_length=parameters["sequence_len"])
     
     # set dataloader
     train_loader = DataLoader(
@@ -113,13 +117,13 @@ def start(args):
 
     # initialize model
     model = Transformer_Encoder(
-        input_dim= parameters["input_dim"],
-        d_model= parameters["d_model"],
-        nhead= parameters["n_head"],
-        num_encoder_layers= parameters["num_encoder_layer"],
-        num_joints=parameters["num_joints"],
-        num_dims=parameters["num_dims"],
-        dropout=parameters["dropout"]
+        input_dim          = parameters["input_dim"],
+        d_model            = parameters["d_model"],
+        nhead              = parameters["n_head"],
+        num_encoder_layers = parameters["num_encoder_layer"],
+        num_joints         = parameters["num_joints"],
+        num_dims           = parameters["num_dims"],
+        dropout            = parameters["dropout"]
     ).to(device)
 
     # set loss function
@@ -128,16 +132,16 @@ def start(args):
     # set optimizer
     optimizer = torch.optim.AdamW(
         model.parameters(),
-        lr=parameters["learning_rate"],
-        weight_decay=parameters["weight_decay"],
-        betas=(0.9, 0.999)
+        lr           = parameters["learning_rate"],
+        weight_decay = parameters["weight_decay"],
+        betas        = (0.9, 0.999)
     )
     # set scheduler
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
         optimizer,
-        mode='min',
-        factor=0.5,
-        patience=5,
+        mode     = 'min',
+        factor   = 0.5,
+        patience = 5,
     )
 
     # start model training
@@ -148,22 +152,22 @@ def start(args):
         criterion,
         optimizer, 
         scheduler,
-        num_epochs=parameters["num_epoch"],
-        save_path='./weight/best_skeleton_model.pth',                   # ファイル名に日付とモデル名を含んで毎回記録を残せるようにする
-        device=device
+        num_epochs  = parameters["num_epoch"],
+        save_path   = './weight/best_skeleton_model.pth',          # ファイル名に日付とモデル名を含んで毎回記録を残せるようにする
+        device      = device
     )
 
     # keep checkpoint
     final_checkpoint = {
-        'model_state_dict': model.state_dict(),
-        'optimizer_state_dict': optimizer.state_dict(),
-        'scheduler_state_dict': scheduler.state_dict(),
+        'model_state_dict'      : model.state_dict(),
+        'optimizer_state_dict'  : optimizer.state_dict(),
+        'scheduler_state_dict'  : scheduler.state_dict(),
         'model_config': {
-            'input_dim': parameters["input_dim"],
-            'd_model': parameters["d_model"],
-            'nhead': parameters["n_head"],
+            'input_dim'         : parameters["input_dim"],
+            'd_model'           : parameters["d_model"],
+            'nhead'             : parameters["n_head"],
             'num_encoder_layers': parameters["num_encoder_layer"],
-            'num_joints': parameters["num_joints"]
+            'num_joints'        : parameters["num_joints"]
         }
     }
     torch.save(final_checkpoint, './weight/final_skeleton_model.pth')   # ファイル名に日付とモデル名を含んで毎回記録を残せるようにする

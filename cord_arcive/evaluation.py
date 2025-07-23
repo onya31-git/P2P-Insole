@@ -24,8 +24,8 @@ from sklearn.metrics import mean_squared_error
         #  './data/20241115test3/insoleSensor/20241115_154900_right.csv'),
 
 # ファイルパスを指定
-truth_file = "./data/20250517old_data/20241115test3/Opti-track/Take 2024-11-15 03.44.00 PM.csv"
-predicted_file = "./output/BERT_predicted_skeleton.csv"
+truth_file = "./data/test_data/Skeleton/T005S008_skeleton.csv"
+predicted_file = "./output/predicted_skeleton.csv"
 
 import pandas as pdc
 import numpy as np

@@ -23,8 +23,8 @@ import numpy as np
         #  './data/20241115test3/insoleSensor/20241115_154900_right.csv'),
 
 def main():
-    truth_file = "./data/20241115test3/Opti-track/Take 2024-11-15 03.44.00 PM.csv"
-    predicted_file = "./output/skeleton11_test4_squat.csv"
+    truth_file = "./data/test_data/Skeleton/T005S008_skeleton.csv"
+    predicted_file = "./output/predicted_skeleton.csv"
     
     try:
         metrics = calculate_point_metrics(truth_file, predicted_file)

@@ -1,17 +1,19 @@
 # 深層学習モデルを構築するファイル
 #
-## スケーリング処理、ガウスノイズ等の処理は前処理で記述する
-#
+# サマリーを表示できるようにする(実行時間、best loss、 エポック、等)
+# 予測トレーニング終了時間を表示する
 #
 import pandas as pd 
 import math
 import time
+import datetime
+from tqdm import tqdm
 import torch 
 import torch.nn as nn
 import torch.nn.functional as F
 
 class PositionalEncoding(nn.Module):
-    def __init__(self, d_model, max_len=100000):
+    def __init__(self, d_model, max_len=512):
         super(PositionalEncoding, self).__init__()
         
         position = torch.arange(max_len).unsqueeze(1)
@@ -113,13 +115,17 @@ def train_Transformer_Encoder(model, train_loader, val_loader, criterion, optimi
 
     # 開始時間の記録
     start_time = time.time()
+    pre_time   = start_time
+    now_time   = datetime.datetime.now()
+    print(f"\n[train started at {now_time.strftime("%H:%M")}]")
     
     for epoch in range(num_epochs):
         # Training phase
         model.train()
         train_loss = 0.0
         
-        for pressure, skeleton in train_loader:
+        train_pbar = tqdm(train_loader, desc=f"Epoch {epoch+1} Train", leave=False)
+        for pressure, skeleton in train_pbar:
             # データをGPUに移動
             pressure = pressure.to(device)
             skeleton = skeleton.to(device)
@@ -138,8 +144,9 @@ def train_Transformer_Encoder(model, train_loader, val_loader, criterion, optimi
         model.eval()
         val_loss = 0.0
         
+        val_pbar = tqdm(val_loader, desc=f"Epoch {epoch+1} Val", leave=False)
         with torch.no_grad():
-            for pressure, skeleton in val_loader:
+            for pressure, skeleton in val_pbar:
                 # データをGPUに移動
                 pressure = pressure.to(device)
                 skeleton = skeleton.to(device)
@@ -156,17 +163,25 @@ def train_Transformer_Encoder(model, train_loader, val_loader, criterion, optimi
         scheduler.step(avg_val_loss)
         current_lr = optimizer.param_groups[0]['lr']
 
-        # 経過時間の計測
+        # 経過時間の計算
         end_time = time.time()
-        elapsed_time_total_s = end_time - start_time
-        elapsed_time_m = int(elapsed_time_total_s//60)
-        elapsed_time_s = int(elapsed_time_total_s%60)
+        epoch_time_total_s   = end_time - pre_time
+        elaps_time_total_s   = end_time - start_time
+        epoch_time_m         = int(epoch_time_total_s//60)
+        epoch_time_s         = int(epoch_time_total_s%60)
+        elaps_time_m         = int(elaps_time_total_s//60)
+        elaps_time_s         = int(elaps_time_total_s%60)
+
+        # 予測完了時間の計算
+        # est_comp_time = 
+
+        print(f'------------ Epoch {epoch+1}/{num_epochs} ------------\n'
+              f'Train Loss: {avg_train_loss:.4f} | Val Loss: {avg_val_loss:.4f}\n'
+              f'LR        : {current_lr:.5f}\n'
+              f'Time/epoch: {epoch_time_m}m {epoch_time_s}s | Total: {elaps_time_m}m {elaps_time_s}s') #\n'
+              # f'Estimated completion time - {}:{}')
         
-        print(f'----- Epoch {epoch+1}/{num_epochs} -----\n'
-              f'Train Loss: {avg_train_loss:.4f}\n'
-              f'Val Loss:   {avg_val_loss:.4f}\n'
-              f'LR:         {current_lr:.6f}\n' 
-              f'Time:       {elapsed_time_m}m {elapsed_time_s}s' )
+        pre_time = end_time
         
         # モデルの保存
         if avg_val_loss < best_val_loss:

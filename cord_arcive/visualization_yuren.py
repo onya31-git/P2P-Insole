@@ -24,9 +24,9 @@ def process_skeleton_data(df):
 
         for i in range(num_joints):
             try:
-                x = row[f'X.{i * 2 + 1}']
-                y = row[f'Y.{i * 2 + 1}']
-                z = row[f'Z.{i * 2 + 1}']
+                x = row[f'X.{i*2 + 1}']
+                y = row[f'Y.{i*2 + 1}']
+                z = row[f'Z.{i*2 + 1}']
             except KeyError:
                 continue
 

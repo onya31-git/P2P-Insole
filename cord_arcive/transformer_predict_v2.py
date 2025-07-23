@@ -3,6 +3,8 @@ import pandas as pd
 import numpy as np
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from transformer_model import EnhancedSkeletonTransformer 
+import os
+os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
 
 def preprocess_pressure_data(left_data, right_data):
     """圧力、回転、加速度データの前処理"""
@@ -108,48 +110,98 @@ def load_and_preprocess_data(file_pairs):
     
     return predictions_all
 
-def predict_skeleton():
-        # 立ちっぱなし
-        # ('./data/20241115test3/Opti-track/Take 2024-11-15 03.20.00 PM.csv',
-        #  './data/20241115test3/insoleSensor/20241115_152500_left.csv',
-        #  './data/20241115test3/insoleSensor/20241115_152500_right.csv'),
-        # お辞儀
-        # ('./data/20241115test3/Opti-track/Take 2024-11-15 03.26.00 PM.csv',
-        #  './data/20241115test3/insoleSensor/20241115_153100_left.csv', 
-        #  './data/20241115test3/insoleSensor/20241115_153100_right.csv'),
-        # # 体の横の傾け
-        # ('./data/20241115test3/Opti-track/Take 2024-11-15 03.32.00 PM.csv', 
-        #  './data/20241115test3/insoleSensor/20241115_153700_left.csv', 
-        #  './data/20241115test3/insoleSensor/20241115_153700_right.csv'),
-        # # 立つ座る
-        # ('./data/20241115test3/Opti-track/Take 2024-11-15 03.38.00 PM.csv', 
-        #  './data/20241115test3/insoleSensor/20241115_154300_left.csv', 
-        #  './data/20241115test3/insoleSensor/20241115_154300_right.csv'),
-        # # スクワット
-        # ('./data/20241115test3/Opti-track/Take 2024-11-15 03.44.00 PM.csv', 
-        #  './data/20241115test3/insoleSensor/20241115_154900_left.csv', 
-        #  './data/20241115test3/insoleSensor/20241115_154900_right.csv'),
+# def predict_skeleton():
+#         # 立ちっぱなし
+#         # ('./data/20241115test3/Opti-track/Take 2024-11-15 03.20.00 PM.csv',
+#         #  './data/20241115test3/insoleSensor/20241115_152500_left.csv',
+#         #  './data/20241115test3/insoleSensor/20241115_152500_right.csv'),
+#         # お辞儀
+#         # ('./data/20241115test3/Opti-track/Take 2024-11-15 03.26.00 PM.csv',
+#         #  './data/20241115test3/insoleSensor/20241115_153100_left.csv', 
+#         #  './data/20241115test3/insoleSensor/20241115_153100_right.csv'),
+#         # # 体の横の傾け
+#         # ('./data/20241115test3/Opti-track/Take 2024-11-15 03.32.00 PM.csv', 
+#         #  './data/20241115test3/insoleSensor/20241115_153700_left.csv', 
+#         #  './data/20241115test3/insoleSensor/20241115_153700_right.csv'),
+#         # # 立つ座る
+#         # ('./data/20241115test3/Opti-track/Take 2024-11-15 03.38.00 PM.csv', 
+#         #  './data/20241115test3/insoleSensor/20241115_154300_left.csv', 
+#         #  './data/20241115test3/insoleSensor/20241115_154300_right.csv'),
+#         # # スクワット
+#         # ('./data/20241115test3/Opti-track/Take 2024-11-15 03.44.00 PM.csv', 
+#         #  './data/20241115test3/insoleSensor/20241115_154900_left.csv', 
+#         #  './data/20241115test3/insoleSensor/20241115_154900_right.csv'),
 
-    try:
-        # データの読み込みと前処理
-        skeleton_data = pd.read_csv('./data/20241115test3/Opti-track/Take 2024-11-15 03.38.00 PM.csv')
-        pressure_data_left = pd.read_csv('./data/20241115test3/insoleSensor/20241115_154300_left.csv', skiprows=1)
-        pressure_data_right = pd.read_csv('./data/20241115test3/insoleSensor/20241115_154300_right.csv', skiprows=1)
+#     try:
+#         # # データの読み込みと前処理
+#         # skeleton_data = pd.read_csv('./data/20241115test3/Opti-track/Take 2024-11-15 03.38.00 PM.csv')
+#         # pressure_data_left = pd.read_csv('./data/20241115test3/insoleSensor/20241115_154300_left.csv', skiprows=1)
+#         # pressure_data_right = pd.read_csv('./data/20241115test3/insoleSensor/20241115_154300_right.csv', skiprows=1)
 
-        # 入力データの前処理
-        input_features = preprocess_pressure_data(pressure_data_left, pressure_data_right)
+#         skeleton_data = pd.read_csv('./data/test_data/Skeleton/T005S008_skeleton.csv')
+#         pressure_data_left = pd.read_csv('./data/test_data/Insole/T005S008_Insole_l.csv', skiprows=1)
+#         pressure_data_right = pd.read_csv('./data/test_data/Insole/T005S008_Insole_r.csv', skiprows=1)
+
+#         # 入力データの前処理
+#         input_features = preprocess_pressure_data(pressure_data_left, pressure_data_right)
         
-        # 入力の次元数を取得
-        input_dim = input_features.shape[1]
-        num_joints = skeleton_data.shape[1] // 3
+#         # 入力の次元数を取得
+#         input_dim = input_features.shape[1]
+#         num_joints = skeleton_data.shape[1] // 3
 
-        # デバイスの設定
+#         # デバイスの設定
+#         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+#         print(f"Using device: {device}")
+
+#         # モデルの初期化（固定パラメータを使用）
+#         model = EnhancedSkeletonTransformer(
+#             input_dim=input_dim,
+#             d_model=512,
+#             nhead=8,
+#             num_encoder_layers=8,
+#             num_joints=num_joints,
+#             num_dims=3,
+#             dropout=0.2
+#         ).to(device)
+
+#         # チェックポイントの読み込み（weights_only=Trueを追加）
+#         checkpoint = torch.load('./weight/best_skeleton_model.pth', map_location=device, weights_only=True)
+        
+#         # モデルの重みを読み込み
+#         model.load_state_dict(checkpoint['model_state_dict'])
+#         model.eval()
+#         print("Model loaded successfully")
+
+#         # 予測の実行
+#         print("Making predictions...")
+#         with torch.no_grad():
+#             input_tensor = torch.FloatTensor(input_features).to(device)
+#             predictions = model(input_tensor)
+#             predictions = predictions.cpu().numpy()
+
+#         print(f"Prediction shape: {predictions.shape}")
+#         return predictions
+
+#     except Exception as e:
+#         print(f"Error during prediction: {str(e)}")
+#         raise
+
+def predict_skeleton(batch_size=128):
+    try:
+        print("Loading data...")
+        skeleton_data = pd.read_csv('./data/test_data/Skeleton/T005S008_skeleton.csv')
+        pressure_data_left = pd.read_csv('./data/test_data/Insole/T005S008_Insole_l.csv', skiprows=1)
+        pressure_data_right = pd.read_csv('./data/test_data/Insole/T005S008_Insole_r.csv', skiprows=1)
+
+        # 特徴量生成
+        input_features = preprocess_pressure_data(pressure_data_left, pressure_data_right)
+        num_joints = skeleton_data.shape[1] // 3
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         print(f"Using device: {device}")
+        print(f"Input shape: {input_features.shape}")
 
-        # モデルの初期化（固定パラメータを使用）
         model = EnhancedSkeletonTransformer(
-            input_dim=input_dim,
+            input_dim=input_features.shape[1],
             d_model=512,
             nhead=8,
             num_encoder_layers=8,
@@ -158,22 +210,24 @@ def predict_skeleton():
             dropout=0.2
         ).to(device)
 
-        # チェックポイントの読み込み（weights_only=Trueを追加）
-        checkpoint = torch.load('./weight/best_skeleton_model_test4Tasks.pth', map_location=device, weights_only=True)
-        
-        # モデルの重みを読み込み
+        checkpoint = torch.load('./weight/best_skeleton_model.pth', map_location=device, weights_only=True)
         model.load_state_dict(checkpoint['model_state_dict'])
         model.eval()
-        print("Model loaded successfully")
+        print("Model loaded successfully.")
 
-        # 予測の実行
-        print("Making predictions...")
+        # バッチ推論
+        predictions = []
+        input_tensor = torch.FloatTensor(input_features)
+
         with torch.no_grad():
-            input_tensor = torch.FloatTensor(input_features).to(device)
-            predictions = model(input_tensor)
-            predictions = predictions.cpu().numpy()
+            for start in range(0, len(input_tensor), batch_size):
+                end = min(start + batch_size, len(input_tensor))
+                batch = input_tensor[start:end].to(device)  # [B, 246]
+                pred = model(batch)                         # [B, 63]
+                predictions.append(pred.cpu())
 
-        print(f"Prediction shape: {predictions.shape}")
+        predictions = torch.cat(predictions, dim=0).numpy()
+        print(f"Prediction complete. Shape: {predictions.shape}")
         return predictions
 
     except Exception as e:

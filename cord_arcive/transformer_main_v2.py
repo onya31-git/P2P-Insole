@@ -160,27 +160,59 @@ def main():
         # ('./data/20241115test3/Opti-track/Take 2024-11-15 03.44.00 PM.csv', 
         #  './data/20241115test3/insoleSensor/20241115_154900_left.csv', 
         #  './data/20241115test3/insoleSensor/20241115_154900_right.csv'),
-         # 総合(test3)
-        ('./data/20241115test3/Opti-track/Take 2024-11-15 03.50.00 PM.csv', 
-         './data/20241115test3/insoleSensor/20241115_155500_left.csv', 
-         './data/20241115test3/insoleSensor/20241115_155500_right.csv'),
+        #  # 総合(test3)
+        # ('./data/20241115test3/Opti-track/Take 2024-11-15 03.50.00 PM.csv', 
+        #  './data/20241115test3/insoleSensor/20241115_155500_left.csv', 
+        #  './data/20241115test3/insoleSensor/20241115_155500_right.csv'),
 
-        # 釘宮くん
-        ('./data/20241212test4/Opti-track/Take 2024-12-12 03.06.59 PM.csv',
-         './data/20241212test4/insoleSensor/20241212_152700_left.csv', 
-         './data/20241212test4/insoleSensor/20241212_152700_right.csv'),
-        # 百田くん
-        ('./data/20241212test4/Opti-track/Take 2024-12-12 03.45.00 PM.csv', 
-         './data/20241212test4/insoleSensor/20241212_160501_left.csv', 
-         './data/20241212test4/insoleSensor/20241212_160501_right.csv'),
-        # # # 渡辺(me)
-        ('./data/20241212test4/Opti-track/Take 2024-12-12 04.28.00 PM.csv', 
-         './data/20241212test4/insoleSensor/20241212_164800_left.csv', 
-         './data/20241212test4/insoleSensor/20241212_164800_right.csv'),
-        # にるぱむさん
-        ('./data/20241212test4/Opti-track/Take 2024-12-12 05.17.59 PM.csv', 
-         './data/20241212test4/insoleSensor/20241212_173800_left.csv', 
-         './data/20241212test4/insoleSensor/20241212_173800_right.csv')
+        # # 釘宮くん
+        # ('./data/20241212test4/Opti-track/Take 2024-12-12 03.06.59 PM.csv',
+        #  './data/20241212test4/insoleSensor/20241212_152700_left.csv', 
+        #  './data/20241212test4/insoleSensor/20241212_152700_right.csv'),
+        # # 百田くん
+        # ('./data/20241212test4/Opti-track/Take 2024-12-12 03.45.00 PM.csv', 
+        #  './data/20241212test4/insoleSensor/20241212_160501_left.csv', 
+        #  './data/20241212test4/insoleSensor/20241212_160501_right.csv'),
+        # # # # 渡辺(me)
+        # ('./data/20241212test4/Opti-track/Take 2024-12-12 04.28.00 PM.csv', 
+        #  './data/20241212test4/insoleSensor/20241212_164800_left.csv', 
+        #  './data/20241212test4/insoleSensor/20241212_164800_right.csv'),
+        # # にるぱむさん
+        # ('./data/20241212test4/Opti-track/Take 2024-12-12 05.17.59 PM.csv', 
+        #  './data/20241212test4/insoleSensor/20241212_173800_left.csv', 
+        #  './data/20241212test4/insoleSensor/20241212_173800_right.csv')
+
+
+
+         # 新データ(test5)
+         # s1
+        ('./data/training_data/Skeleton/T005S001_skeleton.csv', 
+         './data/training_data/Insole/T005S001_Insole_l.csv', 
+         './data/training_data/Insole/T005S001_Insole_r.csv'),
+        # s2
+        ('./data/training_data/Skeleton/T005S002_skeleton.csv', 
+         './data/training_data/Insole/T005S002_Insole_l.csv', 
+         './data/training_data/Insole/T005S002_Insole_r.csv'),
+        # s3
+        ('./data/training_data/T005S003_skeleton.csv', 
+         './data/training_data/T005S003_Insole_l.csv', 
+         './data/training_data/T005S003_Insole_r.csv'),
+        # s4
+        ('./data/training_data/T005S004_skeleton.csv', 
+         './data/training_data/T005S004_Insole_l.csv', 
+         './data/training_data/T005S004_Insole_r.csv'),
+        # s5
+        ('./data/training_data/T005S005_skeleton.csv', 
+         './data/training_data/T005S005_Insole_l.csv', 
+         './data/training_data/T005S005_Insole_r.csv'),
+         # s6
+        ('./data/training_data/T005S006_skeleton.csv', 
+         './data/training_data/T005S006_Insole_l.csv', 
+         './data/training_data/T005S006_Insole_r.csv'),
+         # s7
+        ('./data/training_data/T005S007_skeleton.csv', 
+         './data/training_data/T005S007_Insole_l.csv', 
+         './data/training_data/T005S007_Insole_r.csv'),
     ]
     
     # データの読み込みと結合
@@ -265,7 +297,7 @@ def main():
         mode='min',
         factor=0.5,
         patience=5,
-        verbose=True
+        # verbose=True
     )
 
     # トレーニング実行
