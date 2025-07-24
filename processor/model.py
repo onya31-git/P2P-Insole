@@ -1,7 +1,7 @@
 # 深層学習モデルを構築するファイル
 #
 # サマリーを表示できるようにする(実行時間、best loss、 エポック、等)
-# 予測トレーニング終了時間を表示する
+# 
 #
 import pandas as pd 
 import math
@@ -56,7 +56,7 @@ class Transformer_Encoder(nn.Module):
                 dim_feedforward=d_model * 4,  # FeedForward layerの数(ここも入力から調整する必要があるかも)
                 dropout=dropout,              # ドロップアウト正則化
                 batch_first=True,             # 
-                norm_first=True),             # 
+                norm_first=False),            # 7/24: TrueからFalseに変更
 
             num_layers=num_encoder_layers
         )
@@ -168,13 +168,16 @@ def train_Transformer_Encoder(model, train_loader, val_loader, criterion, optimi
         elaps_time_s         = int(elaps_time_total_s%60)
 
         # 予測完了時間の計算
-        # est_comp_time = 
+        remaining_epochs = num_epochs - (epoch + 1)
+        est_remaining_time_s = epoch_time_total_s * remaining_epochs
+        est_finish_time = datetime.datetime.now() + datetime.timedelta(seconds=est_remaining_time_s)
+        est_finish_str  = est_finish_time.strftime("%H:%M")
 
         print(f'------------ Epoch {epoch+1}/{num_epochs} ------------\n'
               f'Train Loss: {avg_train_loss:.4f} | Val Loss: {avg_val_loss:.4f}\n'
               f'LR        : {current_lr:.5f}\n'
-              f'Time/epoch: {epoch_time_m}m {epoch_time_s}s | Total: {elaps_time_m}m {elaps_time_s}s') #\n'
-              # f'Estimated completion time - {}:{}')
+              f'Time/epoch: {epoch_time_m}m {epoch_time_s}s | Total: {elaps_time_m}m {elaps_time_s}s\n'
+              f'Estimated Finish: {est_finish_str}')
         
         pre_time = end_time
         
