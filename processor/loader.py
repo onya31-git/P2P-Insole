@@ -1,7 +1,7 @@
 # load関係の関数
 #
 #   関数の移動を検討する
-#
+#   YAMLファイルが一つでもいいか検証する
 #
 import pandas as pd
 import numpy as np

@@ -1,13 +1,14 @@
-# トランスフォーマーの学習用コード
+# 学習処理用プロセッサー
 #
 # 各処理にsaccessfullyを追加
 # コマンドラインから使用するモデルを変更できるようにする
+# クオータニオンを使用する
 #
 import pandas as pd
 import numpy as np
 import argparse
-import torch
 import joblib
+import torch
 from torch.utils.data import DataLoader
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.model_selection import train_test_split
@@ -63,11 +64,11 @@ def start(args):
     val_input_feature   = np.concatenate([val_pressure_scaled, val_IMU_scaled], axis=1) 
 
     # set final train parameters----------------------------------------------------------------------------
-    parameters = {
+    parameters = {                                                      # parameters 長い、parmsで良くね?
         # model
         "d_model"            : config["train"]["d_model"],
         "n_head"             : config["train"]["n_head"],
-        "num_encoder_layer"  : config["train"]["num_encoder_layer"],    # numなのかnなのか統一した方がいい、 他の記号も同様に(d = dim, n = num, s = size, l = len)
+        "num_encoder_layer"  : config["train"]["num_encoder_layer"],    # numなのかnなのか統一した方がいい、 他の記号も同様に(d = dim, n = num, l = len)
         "dropout"            : config["train"]["dropout"],
 
         # learning
@@ -83,7 +84,7 @@ def start(args):
         "loss_beta"          : config["train"]["loss_beta"],
 
         # others
-        "use_gradient_data"  : config["train"]["use_gradient_data"],
+        "use_gradient_data"  : config["train"]["use_gradient_data"],    # gradでいい
         "sequence_len"       : config["train"]["sequence_len"],
         "input_dim"          : pressure_lr_df.shape[1] + IMU_lr_df.shape[1], # 圧力+回転+加速度の合計次元数
         "num_joints"         : skeleton_df.shape[1] // 3,                    # 3D座標なので3で割る
