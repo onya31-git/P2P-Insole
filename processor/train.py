@@ -38,7 +38,7 @@ def start(args):
         pressure_lr_df, 
         IMU_lr_df, 
         skeleton_df,
-        test_size=0.2, 
+        test_size=0.2,
         shuffle=False
     )
 

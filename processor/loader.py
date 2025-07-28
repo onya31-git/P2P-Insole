@@ -14,9 +14,9 @@ from collections import defaultdict
 from torch.utils.data import Dataset
 
 def load_config(args,config_path, model):
-    """指定されたパスからYAMLファイルを読み込み、Pythonオブジェクトとして返す。
+    """指定されたパスからYAMLファイルを読み込み、Pythonオブジェクトとして返す
     Args:
-        path (str): 読み込む設定ファイル（.yaml）のファイルパス。
+        path (str): 読み込む設定ファイル（.yaml）のファイルパス
     Returns:
         dict: YAMLファイルの内容から変換された辞書オブジェクト
     """
@@ -43,7 +43,7 @@ def load_config(args,config_path, model):
 
 
 def get_datapath_pairs(skeleton_dir, insole_dir):
-    """指定されたディレクトリから、共通タグを持つskeletonとinsoleのファイルパスをペアリングする。
+    """指定されたディレクトリから、共通タグを持つskeletonとinsoleのファイルパスをペアリングする
     Args:
         skeleton_dir (str): スケルトンデータ（*_skeleton.csv）が格納されているディレクトリのパス
         insole_dir (str): インソールデータ（*_Insole_*.csv）が格納されているディレクトリのパス
@@ -95,7 +95,7 @@ def get_datapath_pairs(skeleton_dir, insole_dir):
 
 
 def load_and_combine_data(data_pairs):
-    """ファイルパスの辞書からデータを読み込み、カテゴリ別に結合したDataFrameを返す。
+    """ファイルパスの辞書からデータを読み込み、カテゴリ別に結合したDataFrameを返す
     Args:
         data_pairs (dict): タグをキーとし、ファイルパスの辞書を値に持つオブジェクト
     Returns:
@@ -122,7 +122,7 @@ def load_and_combine_data(data_pairs):
 
 
 def restructure_insole_data(insole_left_df, insole_right_df):
-    """左右のインソールデータフレームを、圧力データとIMUデータに分割・再結合する。
+    """左右のインソールデータフレームを、圧力データとIMUデータに分割・再結合する
     Args:
         insole_left_df (pd.DataFrame): 左足のインソールデータを含むDataFrame
         insole_right_df (pd.DataFrame): 右足のインソールデータを含むDataFrame
