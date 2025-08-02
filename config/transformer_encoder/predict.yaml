@@ -17,7 +17,7 @@ predict:
   num_encoder_layer: 8
   dropout: 0.2
   batch_size: 64
-  sequence_len: 1
+  sequence_len: 10
 
   # check point file path
   checkpoint_file: './weight/best_skeleton_model.pth'

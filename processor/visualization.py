@@ -137,7 +137,7 @@ def start(args):
 
         # レイアウトとコントローラ
         fig.update_layout(
-            title='3D Skeleton Animation: Real (Red) vs Prediction (Yellow)',
+            title='3D Skeleton Animation: Real (Red) vs Prediction (Blue)',
             scene=dict(
                 xaxis_title='X',
                 yaxis_title='Y',

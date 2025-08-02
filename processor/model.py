@@ -120,7 +120,7 @@ def train_Transformer_Encoder(model, train_loader, val_loader, criterion, optimi
         train_loss = 0.0
         
         train_pbar = tqdm(train_loader, desc=f"Epoch {epoch+1} Train", leave=False)
-        for pressure, skeleton in train_pbar:
+        for pressure, skeleton in train_pbar:           # pressureとskeletonは命名に語弊がある。
             # データをGPUに移動
             pressure = pressure.to(device)
             skeleton = skeleton.to(device)
@@ -206,7 +206,7 @@ def load_Transformer_Encoder(model, optimizer, scheduler, checkpoint_path):
     return model, optimizer, scheduler, epoch, best_val_loss
 
 
-def save_predictions(predictions, model):
+def save_predictions(predictions, model):          # この関数がmodelファイルに存在するべきかを検討する
     # 予測結果をデータフレームに変換
     num_joints = predictions.shape[1] // 3
     columns = []

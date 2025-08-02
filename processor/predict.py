@@ -84,8 +84,8 @@ def start(args):
     ).to(device)
 
     # チェックポイントの読み込み
-    checkpoint = torch.load(parameters["checkpoint_file"], map_location=device, weights_only=True)
-    model.load_state_dict(checkpoint["model_state_dict"], strict=False)
+    checkpoint = torch.load(parameters["checkpoint_file"], map_location=device)
+    model.load_state_dict(checkpoint["model_state_dict"], strict=True)
 
     # 予測結果を格納するためのリスト
     all_predictions = []
@@ -94,23 +94,12 @@ def start(args):
     input_tensor = torch.tensor(input_feature_np, dtype=torch.float32).to(device)
 
     model.eval()
-
-    # # 予測の実行
-    # print("Making predictions...")
-    # with torch.no_grad():
-    #     input_tensor = torch.FloatTensor(input_feature_df).to(device)
-    #     input_tensor = input_tensor.unsqueeze(1)  # 形状が [93630, 1, 82]
-    #     predictions = model(input_tensor)
-    #     predictions = predictions.cpu().numpy()
-    # save_predictions(predictions, args.model)
-
     with torch.no_grad():
-        # データローダーからバッチ単位でデータを取り出してループ処理
-        for i in range(len(input_tensor) - parameters["sequence_len"]):
+        for i in range(len(input_tensor) - parameters["sequence_len"]):  # データローダーからバッチ単位でデータを取り出してループ処理
             sequence = input_tensor[i : i + parameters["sequence_len"]]  # sequence_lenの長さでシーケンスを切り出す
             sequence = sequence.unsqueeze(0)                             # モデルが要求する3D形状 [1, sequence_len, features] に変換
             prediction = model(sequence)                                 # モデルで予測を実行
-            all_predictions.append(prediction.cpu())                     # 結果をリストに保存
+            all_predictions.append(prediction.detach().cpu().clone())    # 結果をリストに保存
 
     # 全てのバッチの予測結果を一つのテンソルに結合
     final_predictions = torch.cat(all_predictions, dim=0)
