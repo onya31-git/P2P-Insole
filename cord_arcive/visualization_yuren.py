@@ -24,9 +24,9 @@ def process_skeleton_data(df):
 
         for i in range(num_joints):
             try:
-                x = row[f'X.{i*2 + 1}']
-                y = row[f'Y.{i*2 + 1}']
-                z = row[f'Z.{i*2 + 1}']
+                x = row[f'X.{i}']
+                y = row[f'Y.{i}']
+                z = row[f'Z.{i}']
             except KeyError:
                 continue
 
@@ -92,6 +92,8 @@ try:
     # 加载数据
     df_real = pd.read_csv(file_path_real)
     df_pred = pd.read_csv(file_path_predict)
+    print(f"Real data: {df_real.shape}")
+    print(f"Pred data: {df_pred.shape}")
 
     # 处理数据
     frames_data_real = process_skeleton_data(df_real)

@@ -84,16 +84,15 @@ def start(args):
     ).to(device)
 
     # チェックポイントの読み込み
-    state_dict = torch.load(parameters["checkpoint_file"], map_location=device, weights_only=True)
+    checkpoint = torch.load(parameters["checkpoint_file"], map_location=device, weights_only=True)
+    model.load_state_dict(checkpoint["model_state_dict"], strict=False)
 
-    # 3. 予測結果を格納するためのリスト
+    # 予測結果を格納するためのリスト
     all_predictions = []
 
     # 入力データをTensorに変換
     input_tensor = torch.tensor(input_feature_np, dtype=torch.float32).to(device)
 
-    # 修正した state_dict をモデルにロード
-    model.load_state_dict(state_dict, strict=False)
     model.eval()
 
     # # 予測の実行

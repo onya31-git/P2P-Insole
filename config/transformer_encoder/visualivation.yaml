@@ -1,0 +1,10 @@
+mode: visualization
+
+location:
+  data_path  : "./data/test_data/Skeleton/T005S008_skeleton.csv"
+  config_path: "./output/predicted_skeleton.csv"
+
+visualization:
+  
+  start_frame: 0
+  step: 50
