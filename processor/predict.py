@@ -133,13 +133,13 @@ def get_parser(add_help=False):
     parser.add_argument('--config', type=str, default=None, help='YAMLファイルのパス')
     parser.add_argument('--data_path', type=str, default=None)
     parser.add_argument('--checkpoint_file', type=str, default=None)
-    parser.add_argument('--sequence_len', type=str, default=None)
+    parser.add_argument('--sequence_len', type=int, default=None)
 
     # モデルパラメータ
     parser.add_argument('--d_model', type=int, default=None)
     parser.add_argument('--n_head', type=int, default=None)
     parser.add_argument('--num_encoder_layer', type=int, default=None)
     parser.add_argument('--dropout', type=float, default=None)
-    parser.add_argument('--batch_size', type=str, default=None)
+    parser.add_argument('--batch_size', type=int, default=None)
 
     return parser

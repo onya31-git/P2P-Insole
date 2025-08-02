@@ -187,7 +187,7 @@ def get_parser(add_help=False):
     parser.add_argument('--model', choices=['transformer_encoder','transformer', 'BERT'], default='transformer_encoder', help='モデル選択')
     parser.add_argument('--config', type=str, default=None, help='YAMLファイルのパス')
     parser.add_argument('--data_path', type=str, default=None)
-    parser.add_argument('--sequence_len', type=str, default=None)
+    parser.add_argument('--sequence_len', type=int, default=None)
     parser.add_argument('--use_gradient_data', type=str, default=None)
 
     # モデルパラメータ
