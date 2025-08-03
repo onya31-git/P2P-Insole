@@ -5,6 +5,8 @@
 #
 import argparse
 import pandas as pd
+import io
+import sys
 import plotly.graph_objects as go
 from processor.loader import load_config
 
@@ -203,10 +205,12 @@ def start(args):
         )
 
         # アニメーションを表示 & HTMLにエクスポート
-        fig.show()
-        fig.write_html("./animation/animation.html")
+        html_str = fig.to_html(full_html=True, include_plotlyjs='cdn')
+        with open("./animation/animation.html", "w", encoding="utf-8") as f:
+            f.write(html_str)
 
-        print(f"Visualization is successful! \n num frames: {len(frames)}")
+        print(f"num frames: {len(frames)}")
+        print(f"Visualization is successful!")
 
     except Exception as e:
         print(f"An error has happened: {str(e)}")

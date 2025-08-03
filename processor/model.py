@@ -91,18 +91,18 @@ class Skeleton_Loss(nn.Module):
         
     def forward(self, pred, target):
         mse_loss = F.mse_loss(pred, target)  # シンプルな MSE Loss
-        return mse_loss
-        # # 変化量の損失
-        # motion_loss = F.mse_loss(
-        #     pred[1:] - pred[:-1],
-        #     target[1:] - target[:-1])
         
-        # # 加速度の損失
-        # accel_loss = F.mse_loss(
-        #     pred[2:] + pred[:-2] - 2 * pred[1:-1],
-        #     target[2:] + target[:-2] - 2 * target[1:-1])
+        # 変化量の損失
+        motion_loss = F.mse_loss(
+            pred[1:] - pred[:-1],
+            target[1:] - target[:-1])
         
-        # return self.alpha * mse_loss + self.beta * (motion_loss + accel_loss)
+        # 加速度の損失
+        accel_loss = F.mse_loss(
+            pred[2:] + pred[:-2] - 2 * pred[1:-1],
+            target[2:] + target[:-2] - 2 * target[1:-1])
+        
+        return self.alpha * mse_loss + self.beta * (motion_loss + accel_loss)
     
 
 def train_Transformer_Encoder(model, train_loader, val_loader, criterion, optimizer, scheduler, num_epochs, save_path, device):
@@ -114,15 +114,14 @@ def train_Transformer_Encoder(model, train_loader, val_loader, criterion, optimi
     now_time   = datetime.datetime.now()
     print(f"\n[train started at {now_time.strftime("%H:%M")}]")
     
+    # Training phase
     for epoch in range(num_epochs):
-        # Training phase
         model.train()
         train_loss = 0.0
         
         train_pbar = tqdm(train_loader, desc=f"Epoch {epoch+1} Train", leave=False)
         for pressure, skeleton in train_pbar:           # pressureとskeletonは命名に語弊がある。
-            # データをGPUに移動
-            pressure = pressure.to(device)
+            pressure = pressure.to(device)  # データをGPUに移動
             skeleton = skeleton.to(device)
             
             optimizer.zero_grad()
@@ -142,8 +141,7 @@ def train_Transformer_Encoder(model, train_loader, val_loader, criterion, optimi
         val_pbar = tqdm(val_loader, desc=f"Epoch {epoch+1} Val", leave=False)
         with torch.no_grad():
             for pressure, skeleton in val_pbar:
-                # データをGPUに移動
-                pressure = pressure.to(device)
+                pressure = pressure.to(device)  # データをGPUに移動
                 skeleton = skeleton.to(device)
                 
                 outputs = model(pressure)

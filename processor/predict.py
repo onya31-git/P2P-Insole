@@ -99,6 +99,7 @@ def start(args):
             sequence = input_tensor[i : i + parameters["sequence_len"]]  # sequence_lenの長さでシーケンスを切り出す
             sequence = sequence.unsqueeze(0)                             # モデルが要求する3D形状 [1, sequence_len, features] に変換
             prediction = model(sequence)                                 # モデルで予測を実行
+            prediction = prediction[:, -1, :]
             all_predictions.append(prediction.detach().cpu().clone())    # 結果をリストに保存
 
     # 全てのバッチの予測結果を一つのテンソルに結合
