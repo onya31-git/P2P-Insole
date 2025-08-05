@@ -22,7 +22,7 @@ train:
   batch_size: 64
 
   # optimize
-  learning_rate: 0.001
+  learning_rate: 0.0005
   weight_decay: 0.001
 
   # Loss fanction
@@ -30,5 +30,5 @@ train:
   loss_beta: 0.1
 
   # others
-  sequence_len: 10
+  sequence_len: 60
   use_gradient_data: False

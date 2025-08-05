@@ -1,0 +1,20 @@
+{
+  "source": "HE",
+  "hash": "GNCRPCZENFRDjhQfY2sePfhwnVWV6&120EE9D5&0&0000",
+  "takeName": "Take_0001",
+  "startDate": "2025-05-29",
+  "startTime": "05-38-56-226-pm",
+  "performerName": "Default",
+  "performerNumber": 0,
+  "profileName": "Default Left",
+  "calibrationId": 0,
+  "side": "Left",
+  "gloveType": "RevG",
+  "gloveSN": "A3LE40131",
+  "gloveFW": "2.1.16",
+  "dongleFW": "2.1.16",
+  "fileName": "P1L_Default.csv",
+  "outputType": "smart",
+  "masterTimeCodeSource": "System",
+  "fpsRate": 50
+}

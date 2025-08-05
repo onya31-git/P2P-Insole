@@ -56,15 +56,6 @@ def start(args):
     # # 微分処理を行うならば
     # calculate_grad()
 
-    # # テストデータセットの作成
-    # test_dataset = PressureDataset(input_feature_df)
-
-    # test_loader = DataLoader(
-    #     dataset=test_dataset,
-    #     batch_size=parameters["batch_size"],
-    #     shuffle=False
-    # )
-
     # デバイスの設定
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
@@ -99,14 +90,13 @@ def start(args):
             sequence = input_tensor[i : i + parameters["sequence_len"]]  # sequence_lenの長さでシーケンスを切り出す
             sequence = sequence.unsqueeze(0)                             # モデルが要求する3D形状 [1, sequence_len, features] に変換
             prediction = model(sequence)                                 # モデルで予測を実行
-            prediction = prediction[:, -1, :]
             all_predictions.append(prediction.detach().cpu().clone())    # 結果をリストに保存
 
     # 全てのバッチの予測結果を一つのテンソルに結合
     final_predictions = torch.cat(all_predictions, dim=0)
     final_predictions_np = final_predictions.numpy()
-    skeleton_scaler = joblib.load('./scaler/skeleton_scaler.pkl')
-    final_predictions_np = skeleton_scaler.inverse_transform(final_predictions_np)
+    # skeleton_scaler = joblib.load('./scaler/skeleton_scaler.pkl')
+    # final_predictions_np = skeleton_scaler.inverse_transform(final_predictions_np)
 
     print(f"Prediction finished. Output shape: {final_predictions_np.shape}")
     save_predictions(final_predictions_np, args.model)

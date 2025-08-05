@@ -9,12 +9,14 @@
 # 一次微分データのみの活用
 # 軽量CNNとのコラボレーション
 # リアルタイム化
+# mish関数を使用する
 import pandas as pd
 import numpy as np
 import argparse
 import joblib
 import torch
 from torch.utils.data import DataLoader
+from scipy.ndimage import gaussian_filter1d
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.model_selection import train_test_split
 from processor.loader import get_datapath_pairs, load_and_combine_data, restructure_insole_data, calculate_grad, load_config,  PressureSkeletonDataset
@@ -37,6 +39,10 @@ def start(args):
     if config["train"]["use_gradient_data"] == True: calculate_grad()                                       # 微分データの追加(実験用)
     # input_feature_np = np.concatenate([pressure_lr_df, IMU_lr_df], axis=1)
 
+    sigma=2
+    pressure_lr_df = pressure_lr_df.apply(lambda x: gaussian_filter1d(x, sigma=sigma))      # 仮に追加
+    IMU_lr_df = IMU_lr_df.apply(lambda x: gaussian_filter1d(x, sigma=sigma))
+
     # Sprit data
     # Skeletal data, pressure data, and IMU data are each split 8:2
     train_pressure, val_pressure, train_IMU, val_IMU, train_skeleton, val_skeleton = train_test_split(
@@ -44,25 +50,25 @@ def start(args):
         IMU_lr_df, 
         skeleton_df,
         test_size=0.2,
-        shuffle=False
+        shuffle=False        # sequence_len > 1 でトレーニングする場合はoff, Trueでpositionalエンコーダーを併用できない
     )
 
     # Initialize scaler
-    pressure_normalizer   = MinMaxScaler()
-    imu_normalizer        = MinMaxScaler()
-    skeleton_scaler       = MinMaxScaler()
+    pressure_normalizer = MinMaxScaler()
+    imu_normalizer      = MinMaxScaler()
+    # skeleton_scaler     = MinMaxScaler()
 
     # Fit the scaler on the training data and transform
     train_pressure_scaled = pressure_normalizer.fit_transform(train_pressure)  # 訓練用圧力データ(fit + transform)
     train_IMU_scaled      = imu_normalizer.fit_transform(train_IMU)            # 訓練用IMUデータ(fit + transform)
-    train_skeleton_scaled = skeleton_scaler.fit_transform(train_skeleton)      # 訓練用骨格データ(fit + transform)
+    # train_skeleton_scaled = skeleton_scaler.fit_transform(train_skeleton)    # 訓練用骨格データ(fit + transform)
     val_pressure_scaled   = pressure_normalizer.transform(val_pressure)        # 検証用圧力データ(fit)
     val_IMU_scaled        = imu_normalizer.transform(val_IMU)                  # 検証用IMUデータ(fit)      
-    val_skeleton_scaled   = skeleton_scaler.transform(val_skeleton)            # 検証用骨格データ(fit)  
+    # val_skeleton_scaled   = skeleton_scaler.transform(val_skeleton)          # 検証用骨格データ(fit)  
 
     # save scaler
     # When I predict the model, I need to use same scaler.
-    joblib.dump(skeleton_scaler, './scaler/skeleton_scaler.pkl')
+    # joblib.dump(skeleton_scaler, './scaler/skeleton_scaler.pkl')
 
     # combine pressure data and IMU data
     train_input_feature = np.concatenate([train_pressure_scaled, train_IMU_scaled], axis=1)
@@ -104,14 +110,14 @@ def start(args):
     print(f"Using device: {device}")
 
     # make dataset
-    train_dataset = PressureSkeletonDataset(train_input_feature, train_skeleton_scaled, sequence_length=parameters["sequence_len"])
-    val_dataset = PressureSkeletonDataset(val_input_feature, val_skeleton_scaled, sequence_length=parameters["sequence_len"])
+    train_dataset = PressureSkeletonDataset(train_input_feature, train_skeleton.to_numpy(), sequence_length=parameters["sequence_len"])   # train_skeleton_scaled
+    val_dataset = PressureSkeletonDataset(val_input_feature, val_skeleton.to_numpy(), sequence_length=parameters["sequence_len"])         # val_skeleton_scaled
     
     # set dataloader
     train_loader = DataLoader(
         train_dataset,
         batch_size=parameters["batch_size"],
-        shuffle=False,               
+        shuffle=True,
         num_workers=4,
         pin_memory=True
     )

@@ -1,0 +1,20 @@
+{
+  "id": 0,
+  "performer_name": "Default",
+  "profile_name": "Default Left",
+  "glove_revision": "RevG",
+  "calibration": [
+    {
+      "id": 0,
+      "descr": "",
+      "created": "Thu May 29 2025 16:40:24 GMT+0900 (日本标准时间)",
+      "lastmodified": "Thu May 29 2025 16:40:24 GMT+0900 (日本标准时间)",
+      "handedness": "Left",
+      "poses": {},
+      "sensordata": {}
+    }
+  ],
+  "express_calibration": {
+    "is_active": false
+  }
+}

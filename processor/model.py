@@ -56,8 +56,7 @@ class Transformer_Encoder(nn.Module):
                 dim_feedforward=d_model * 4,  # FeedForward layerの数(ここも入力から調整する必要があるかも)
                 dropout=dropout,              # ドロップアウト正則化
                 batch_first=True,             # 
-                norm_first=False),            # 7/24: TrueからFalseに変更
-
+                norm_first=False),            # 7/24: TrueからFalseに変更   
             num_layers=num_encoder_layers
         )
         
@@ -91,18 +90,7 @@ class Skeleton_Loss(nn.Module):
         
     def forward(self, pred, target):
         mse_loss = F.mse_loss(pred, target)  # シンプルな MSE Loss
-        
-        # 変化量の損失
-        motion_loss = F.mse_loss(
-            pred[1:] - pred[:-1],
-            target[1:] - target[:-1])
-        
-        # 加速度の損失
-        accel_loss = F.mse_loss(
-            pred[2:] + pred[:-2] - 2 * pred[1:-1],
-            target[2:] + target[:-2] - 2 * target[1:-1])
-        
-        return self.alpha * mse_loss + self.beta * (motion_loss + accel_loss)
+        return mse_loss
     
 
 def train_Transformer_Encoder(model, train_loader, val_loader, criterion, optimizer, scheduler, num_epochs, save_path, device):
@@ -120,8 +108,8 @@ def train_Transformer_Encoder(model, train_loader, val_loader, criterion, optimi
         train_loss = 0.0
         
         train_pbar = tqdm(train_loader, desc=f"Epoch {epoch+1} Train", leave=False)
-        for pressure, skeleton in train_pbar:           # pressureとskeletonは命名に語弊がある。
-            pressure = pressure.to(device)  # データをGPUに移動
+        for pressure, skeleton in train_pbar:  # pressureとskeletonは命名に語弊がある。
+            pressure = pressure.to(device)     # データをGPUに移動
             skeleton = skeleton.to(device)
             
             optimizer.zero_grad()
