@@ -30,5 +30,5 @@ train:
   loss_beta: 0.1
 
   # others
-  sequence_len: 60
+  sequence_len: 30
   use_gradient_data: False

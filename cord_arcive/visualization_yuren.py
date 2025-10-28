@@ -3,9 +3,12 @@ import plotly.graph_objects as go
 import numpy as np
 
 # 文件路径设置（请根据你的实际路径进行修改）
-file_path_real = "./data/test_data/Skeleton/T005S008_skeleton.csv"
-# file_path_real = "./data/20250518test3/Opti-track/3_final/Take 2024-11-15 03.49.59 PM.csv"
-file_path_predict = "./output/predicted_skeleton.csv"
+# file_path_real = "./data/test_data/Skeleton/T005S008_skeleton.csv"
+# # file_path_real = "./data/20250518test3/Opti-track/3_final/Take 2024-11-15 03.49.59 PM.csv"
+# file_path_predict = "./output/predicted_skeleton.csv"
+
+file_path_real = "./data/20250517old_data/20241212test4/Opti-track/Take 2024-12-12 04.28.00 PM.csv"
+file_path_predict = "./output/skeleton11_test4_1.csv"
 
 # 关节连接关系（骨架结构）
 bones = [
@@ -24,9 +27,9 @@ def process_skeleton_data(df):
 
         for i in range(num_joints):
             try:
-                x = row[f'X.{i}']
-                y = row[f'Y.{i}']
-                z = row[f'Z.{i}']
+                x = row[f'X.{2*i +1}']
+                y = row[f'Y.{2*i +1}']
+                z = row[f'Z.{2*i +1}']
             except KeyError:
                 continue
 
@@ -50,7 +53,7 @@ def create_frame_traces(frame_real, frame_pred):
         y=frame_real['z'],
         z=frame_real['y'],
         mode='markers',
-        marker=dict(size=5, color='red', opacity=0.8),
+        marker=dict(size=5, color='lime', opacity=0.8),
         name='Real Joints'
     ))
     for start, end in bones:
@@ -60,7 +63,7 @@ def create_frame_traces(frame_real, frame_pred):
                 y=[frame_real['z'][start], frame_real['z'][end]],
                 z=[frame_real['y'][start], frame_real['y'][end]],
                 mode='lines',
-                line=dict(color='red', width=2),
+                line=dict(color='lime', width=2),
                 name=f'Real Bone {start}-{end}'
             ))
 
@@ -70,7 +73,7 @@ def create_frame_traces(frame_real, frame_pred):
         y=frame_pred['z'],
         z=frame_pred['y'],
         mode='markers',
-        marker=dict(size=5, color='blue', opacity=0.8),
+        marker=dict(size=5, color='red', opacity=0.8),
         name='Predicted Joints'
     ))
     for start, end in bones:
@@ -80,7 +83,7 @@ def create_frame_traces(frame_real, frame_pred):
                 y=[frame_pred['z'][start], frame_pred['z'][end]],
                 z=[frame_pred['y'][start], frame_pred['y'][end]],
                 mode='lines',
-                line=dict(color='blue', width=2),
+                line=dict(color='red', width=2),
                 name=f'Pred Bone {start}-{end}'
             ))
 

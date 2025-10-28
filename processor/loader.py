@@ -187,12 +187,12 @@ class PressureSkeletonDataset(Dataset):
         self.skeleton_data = skeleton_data
         
     def __len__(self):
-        return len(self.input_data) - self.sequence_length
+        return len(self.input_data) - self.sequence_length + 1
     
     def __getitem__(self, index):
         # 入力シーケンスの切り出し
         X = self.input_data[index : index + self.sequence_length]
-        y = self.skeleton_data[index + self.sequence_length]
+        y = self.skeleton_data[index + self.sequence_length - 1]
 
         return torch.tensor(X, dtype=torch.float32), torch.tensor(y, dtype=torch.float32)
     
