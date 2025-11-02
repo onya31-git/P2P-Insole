@@ -7,8 +7,8 @@ import numpy as np
 # # file_path_real = "./data/20250518test3/Opti-track/3_final/Take 2024-11-15 03.49.59 PM.csv"
 # file_path_predict = "./output/predicted_skeleton.csv"
 
-file_path_real = "./data/20250517old_data/20241212test4/Opti-track/Take 2024-12-12 04.28.00 PM.csv"
-file_path_predict = "./output/skeleton11_test4_1.csv"
+file_path_real = "./data/20250517old_data/20241115test3/Opti-track/Take 2024-11-15 03.50.00 PM.csv"
+file_path_predict = "./output/2DCNNTrans_predicted_skeleton.csv"
 
 # 关节连接关系（骨架结构）
 bones = [
@@ -105,7 +105,7 @@ try:
     # 同步帧数量和下采样
     start_frame = 0
     end_frame = min(len(frames_data_real), len(frames_data_pred))
-    step = 50
+    step = 5
 
     frames_data_real = frames_data_real[start_frame:end_frame:step]
     frames_data_pred = frames_data_pred[start_frame:end_frame:step]

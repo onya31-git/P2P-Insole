@@ -171,30 +171,79 @@ def calculate_grad(pressure_lr, IMU_lr):
     return pressure_features, IMU_features
     
 
+# # もともとのPressureSkeletonDataset
+# # デバッグ作業のために封印
+# class PressureSkeletonDataset(Dataset):
+#     """圧力データと骨格データを扱うためのPyTorchカスタムデータセット。
+#     Args:
+#         pressure_data (pd): 圧力データのシーケンス。
+#         skeleton_data (pd): 骨格データのシーケンス。
+
+#     Returns:
+#         pressure_data (torch.Tensor): Tensorに変換された圧力データ。
+#         skeleton_data (torch.Tensor): Tensorに変換された骨格データ。
+#     """
+#     def __init__(self, input_feature, skeleton_data, sequence_length):
+#         self.sequence_length = sequence_length
+#         self.input_data = input_feature
+#         self.skeleton_data = skeleton_data
+        
+#     def __len__(self):
+#         return len(self.input_data) - self.sequence_length + 1
+    
+#     def __getitem__(self, index):
+#         # 入力シーケンスの切り出し
+#         X = self.input_data[index : index + self.sequence_length]
+#         y = self.skeleton_data[index + self.sequence_length - 1]
+
+#         return torch.tensor(X, dtype=torch.float32), torch.tensor(y, dtype=torch.float32)
+    
+# デバッグ用のPressureSkeletonDataset
 class PressureSkeletonDataset(Dataset):
     """圧力データと骨格データを扱うためのPyTorchカスタムデータセット。
+
     Args:
-        pressure_data (pd): 圧力データのシーケンス。
-        skeleton_data (pd): 骨格データのシーケンス。
+        input_feature (array-like): 圧力およびIMU特徴のシーケンス。
+        skeleton_data (array-like): 対応する骨格データのシーケンス。
+        sequence_length (int): モデルに供給するフレーム数。
 
     Returns:
-        pressure_data (torch.Tensor): Tensorに変換された圧力データ。
-        skeleton_data (torch.Tensor): Tensorに変換された骨格データ。
+        tuple[torch.Tensor, torch.Tensor]:
+            - sequence_len x feature_dim の入力テンソル
+            - feature_dim_skeleton のターゲットテンソル
     """
-    def __init__(self, input_feature, skeleton_data, sequence_length):
-        self.sequence_length = sequence_length
-        self.input_data = input_feature
-        self.skeleton_data = skeleton_data
-        
-    def __len__(self):
-        return len(self.input_data) - self.sequence_length + 1
-    
-    def __getitem__(self, index):
-        # 入力シーケンスの切り出し
-        X = self.input_data[index : index + self.sequence_length]
-        y = self.skeleton_data[index + self.sequence_length - 1]
 
-        return torch.tensor(X, dtype=torch.float32), torch.tensor(y, dtype=torch.float32)
+    def __init__(self, input_feature, skeleton_data, sequence_length):
+        self.sequence_length = int(sequence_length)
+
+        if self.sequence_length <= 0:
+            raise ValueError("sequence_length must be a positive integer")
+
+        self.input_data = np.asarray(input_feature, dtype=np.float32)
+        self.skeleton_data = np.asarray(skeleton_data, dtype=np.float32)
+
+        if len(self.input_data) != len(self.skeleton_data):
+            raise ValueError(
+                "input_feature and skeleton_data must contain the same number of frames"
+            )
+
+        self._valid_length = len(self.input_data) - self.sequence_length + 1
+        if self._valid_length <= 0:
+            raise ValueError(
+                "Not enough frames to build a sequence. Increase data length or decrease sequence_length"
+            )
+
+    def __len__(self):
+        return self._valid_length
+
+    def __getitem__(self, index):
+        if index < 0 or index >= self._valid_length:
+            raise IndexError("Index out of range for available sequences")
+        start = index
+        end = start + self.sequence_length
+        X = torch.from_numpy(self.input_data[start:end]).clone()
+        y = torch.from_numpy(self.skeleton_data[end - 1]).clone()
+        return X, y
     
 
 class PressureDataset(Dataset):
