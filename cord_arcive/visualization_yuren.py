@@ -133,7 +133,7 @@ try:
 
     # 布局与控制器
     fig.update_layout(
-        title='3D Skeleton Animation: Real (Red) vs Prediction (Yellow)',
+        title='3D Skeleton Animation: Real (Red) vs Prediction (Green)',
         scene=dict(
             xaxis_title='X',
             yaxis_title='Y',
