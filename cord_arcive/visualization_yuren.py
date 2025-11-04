@@ -7,8 +7,8 @@ import numpy as np
 # # file_path_real = "./data/20250518test3/Opti-track/3_final/Take 2024-11-15 03.49.59 PM.csv"
 # file_path_predict = "./output/predicted_skeleton.csv"
 
-file_path_real = "./data/20250517old_data/20241115test3/Opti-track/Take 2024-11-15 03.50.00 PM.csv"
-file_path_predict = "./output/2DCNNTrans_predicted_skeleton.csv"
+file_path_real = "./data/20250517old_data/20241115test3/Opti-track/Take 2024-11-15 03.26.00 PM.csv"
+file_path_predict = "./output/2DCNNTrans_predicted_skeleton_2bow.csv"
 
 # 关节连接关系（骨架结构）
 bones = [
