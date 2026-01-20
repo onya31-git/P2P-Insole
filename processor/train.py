@@ -39,6 +39,9 @@ def start(args):
     if config["train"]["use_gradient_data"] == True: calculate_grad()                                       # 微分データの追加(実験用)
     # input_feature_np = np.concatenate([pressure_lr_df, IMU_lr_df], axis=1)
 
+    # テスト4データのために一時的に追加
+    skeleton_df = skeleton_df.fillna(method='bfill').fillna(method='ffill')
+
     sigma=2
     pressure_lr_df = pressure_lr_df.apply(lambda x: gaussian_filter1d(x, sigma=sigma))      # 仮に追加
     IMU_lr_df = IMU_lr_df.apply(lambda x: gaussian_filter1d(x, sigma=sigma))
